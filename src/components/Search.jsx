@@ -70,24 +70,37 @@ function Search() {
     setError(null);
 
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_BE_URL}/api/search`,
-        {
-          credentials: "include",
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(getSearchData()),
-        }
-      );
+      axios({
+        method: "post",
+        url: `${import.meta.env.VITE_BE_URL}/api/search`,
+        headers: {
+          "Content- Type": "application/json",
+        },
+      })
+        .then((res) => {
+          console.log(res.data);
+          setSearchResults(res.data.results);
+        })
+        .catch((error) => console.log(error));
 
-      if (!response.ok) {
-        throw new Error("Search failed");
-      }
+      // const response = await fetch(
+      //   `${import.meta.env.VITE_BE_URL}/api/search`,
+      //   {
+      //     credentials: "include",
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify(getSearchData()),
+      //   }
+      // );
 
-      const data = await response.json();
-      setSearchResults(data.results);
+      // if (!response.ok) {
+      //   throw new Error("Search failed");
+      // }
+
+      // const data = await response.json();
+      // setSearchResults(data.results);
     } catch (err) {
       setError("Failed to perform search. Please try again.");
       console.error("Search error:", err);
