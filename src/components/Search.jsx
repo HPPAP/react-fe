@@ -1,17 +1,17 @@
-import React, { useState } from 'react'
-import axios from 'axios'
-import '../App.css'
-import './Search.scss'
+import React, { useState } from "react";
+import axios from "axios";
+import "../App.css";
+import "./Search.scss";
 
 function Search() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   // Add state for each field's tags and current input
   const [fields, setFields] = useState({
-    pageNumber: { tags: [], currentInput: '' },
-    volume: { tags: [], currentInput: '' },
-    date: { tags: [], currentInput: '' },
-    topics: { tags: [], currentInput: '' },
-    keywords: { tags: [], currentInput: '' },
+    pageNumber: { tags: [], currentInput: "" },
+    volume: { tags: [], currentInput: "" },
+    date: { tags: [], currentInput: "" },
+    topics: { tags: [], currentInput: "" },
+    keywords: { tags: [], currentInput: "" },
   });
   // Add state for loading and error
   const [isLoading, setIsLoading] = useState(false);
@@ -19,38 +19,38 @@ function Search() {
 
   const [testResponse, setTestResponse] = useState(null);
   const handleKeyDown = (e, field) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault(); // Prevent new line
       const value = fields[field].currentInput.trim();
       if (value) {
-        setFields(prev => ({
+        setFields((prev) => ({
           ...prev,
           [field]: {
             tags: [...prev[field].tags, value],
-            currentInput: ''
-          }
+            currentInput: "",
+          },
         }));
       }
     }
   };
 
   const handleInputChange = (e, field) => {
-    setFields(prev => ({
+    setFields((prev) => ({
       ...prev,
       [field]: {
         ...prev[field],
-        currentInput: e.target.value
-      }
+        currentInput: e.target.value,
+      },
     }));
   };
 
   const removeTag = (field, tagIndex) => {
-    setFields(prev => ({
+    setFields((prev) => ({
       ...prev,
       [field]: {
         ...prev[field],
-        tags: prev[field].tags.filter((_, index) => index !== tagIndex)
-      }
+        tags: prev[field].tags.filter((_, index) => index !== tagIndex),
+      },
     }));
   };
 
@@ -61,33 +61,33 @@ function Search() {
       volume: fields.volume.tags,
       date: fields.date.tags,
       topics: fields.topics.tags,
-      keywords: fields.keywords.tags
+      keywords: fields.keywords.tags,
     };
   };
 
   const handleSearch = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const response = await fetch('http://localhost:5000/api/search', {
-        credentials: 'include',
-        method: 'POST',
+      const response = await fetch("http://localhost:5000/api/search", {
+        credentials: "include",
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(getSearchData())
+        body: JSON.stringify(getSearchData()),
       });
 
       if (!response.ok) {
-        throw new Error('Search failed');
+        throw new Error("Search failed");
       }
 
       const data = await response.json();
       setSearchResults(data.results);
     } catch (err) {
-      setError('Failed to perform search. Please try again.');
-      console.error('Search error:', err);
+      setError("Failed to perform search. Please try again.");
+      console.error("Search error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -95,13 +95,14 @@ function Search() {
 
   const handleTestClick = async () => {
     try {
-      const response = await axios.post('http://localhost:5000/api/test-post', 
-        { message: 'Hello from the Test button!' }
+      const response = await axios.post(
+        `${process.env.REACT_APP_BE_URL}/api/test-post`,
+        { message: "Hello from the Test button!" }
       );
-      
+
       setTestResponse(response.data);
     } catch (err) {
-      console.error('Test POST error:', err);
+      console.error("Test POST error:", err);
       setTestResponse({ error: err.message });
     }
   };
@@ -126,7 +127,6 @@ function Search() {
 
       {/* Main Fields */}
       <div className="search-fields">
-
         {/* Page Number */}
         <div className="field-block">
           <label htmlFor="page-number-input" className="field-label">
@@ -137,7 +137,9 @@ function Search() {
               {fields.pageNumber.tags.map((tag, index) => (
                 <span key={index} className="tag">
                   {tag}
-                  <button onClick={() => removeTag('pageNumber', index)}>&times;</button>
+                  <button onClick={() => removeTag("pageNumber", index)}>
+                    &times;
+                  </button>
                 </span>
               ))}
             </div>
@@ -145,8 +147,8 @@ function Search() {
               id="page-number-input"
               placeholder="Press Enter to add..."
               value={fields.pageNumber.currentInput}
-              onChange={(e) => handleInputChange(e, 'pageNumber')}
-              onKeyDown={(e) => handleKeyDown(e, 'pageNumber')}
+              onChange={(e) => handleInputChange(e, "pageNumber")}
+              onKeyDown={(e) => handleKeyDown(e, "pageNumber")}
             />
           </div>
         </div>
@@ -159,15 +161,17 @@ function Search() {
               {fields.volume.tags.map((tag, index) => (
                 <span key={index} className="tag">
                   {tag}
-                  <button onClick={() => removeTag('volume', index)}>&times;</button>
+                  <button onClick={() => removeTag("volume", index)}>
+                    &times;
+                  </button>
                 </span>
               ))}
             </div>
             <textarea
               placeholder="Press Enter to add..."
               value={fields.volume.currentInput}
-              onChange={(e) => handleInputChange(e, 'volume')}
-              onKeyDown={(e) => handleKeyDown(e, 'volume')}
+              onChange={(e) => handleInputChange(e, "volume")}
+              onKeyDown={(e) => handleKeyDown(e, "volume")}
             />
           </div>
         </div>
@@ -180,15 +184,17 @@ function Search() {
               {fields.date.tags.map((tag, index) => (
                 <span key={index} className="tag">
                   {tag}
-                  <button onClick={() => removeTag('date', index)}>&times;</button>
+                  <button onClick={() => removeTag("date", index)}>
+                    &times;
+                  </button>
                 </span>
               ))}
             </div>
             <textarea
               placeholder="Press Enter to add..."
               value={fields.date.currentInput}
-              onChange={(e) => handleInputChange(e, 'date')}
-              onKeyDown={(e) => handleKeyDown(e, 'date')}
+              onChange={(e) => handleInputChange(e, "date")}
+              onKeyDown={(e) => handleKeyDown(e, "date")}
             />
           </div>
         </div>
@@ -203,7 +209,9 @@ function Search() {
               {fields.topics.tags.map((tag, index) => (
                 <span key={index} className="tag">
                   {tag}
-                  <button onClick={() => removeTag('topics', index)}>&times;</button>
+                  <button onClick={() => removeTag("topics", index)}>
+                    &times;
+                  </button>
                 </span>
               ))}
             </div>
@@ -211,8 +219,8 @@ function Search() {
               id="topics-input"
               placeholder="Press Enter to add..."
               value={fields.topics.currentInput}
-              onChange={(e) => handleInputChange(e, 'topics')}
-              onKeyDown={(e) => handleKeyDown(e, 'topics')}
+              onChange={(e) => handleInputChange(e, "topics")}
+              onKeyDown={(e) => handleKeyDown(e, "topics")}
             />
           </div>
         </div>
@@ -227,7 +235,9 @@ function Search() {
               {fields.keywords.tags.map((tag, index) => (
                 <span key={index} className="tag">
                   {tag}
-                  <button onClick={() => removeTag('keywords', index)}>&times;</button>
+                  <button onClick={() => removeTag("keywords", index)}>
+                    &times;
+                  </button>
                 </span>
               ))}
             </div>
@@ -235,43 +245,42 @@ function Search() {
               id="keywords-input"
               placeholder="Press Enter to add..."
               value={fields.keywords.currentInput}
-              onChange={(e) => handleInputChange(e, 'keywords')}
-              onKeyDown={(e) => handleKeyDown(e, 'keywords')}
+              onChange={(e) => handleInputChange(e, "keywords")}
+              onKeyDown={(e) => handleKeyDown(e, "keywords")}
             />
           </div>
         </div>
-
       </div>
 
       {/* Bottom Buttons */}
       <div className="button-row">
         <a href="/">
-            <button className="back-button">Home</button>
+          <button className="back-button">Home</button>
         </a>
         <div className="right-buttons">
-            <button type="button" className="projects-btn">
+          <button type="button" className="projects-btn">
             Projects
-            </button>
-            <button
+          </button>
+          <button
             type="button"
             className="search-btn"
             onClick={handleSearch}
             disabled={isLoading}
-            >
+          >
             Search
-            </button>
-            {/* ADD THIS TEST BUTTON HERE */}
-            <button type="button" onClick={handleTestClick}>
+          </button>
+          {/* ADD THIS TEST BUTTON HERE */}
+          <button type="button" onClick={handleTestClick}>
             Test
-            </button>
+          </button>
         </div>
-        </div>
+      </div>
 
       {/* Optionally, display a loading indicator */}
       {isLoading && <div>Loading...</div>}
       {error && <div className="error">{error}</div>}
     </div>
-  )
+  );
 }
 
-export default Search
+export default Search;

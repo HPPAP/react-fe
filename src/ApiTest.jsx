@@ -6,9 +6,9 @@ function ApiTest() {
 
   useEffect(() => {
     axios
-      .get("http://127.0.0.1:5000/api/test")  // Make sure this matches your Flask API
-      .then(response => setMessage(response.data.message))
-      .catch(error => console.error("Error fetching data:", error));
+      .get(`${process.env.REACT_APP_BE_URL}/api/test`) // Make sure this matches your Flask API
+      .then((response) => setMessage(response.data.message))
+      .catch((error) => console.error("Error fetching data:", error));
   }, []);
 
   return (
