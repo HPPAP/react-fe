@@ -70,14 +70,17 @@ function Search() {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:5000/api/search", {
-        credentials: "include",
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(getSearchData()),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_BE_URL}/api/search`,
+        {
+          credentials: "include",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(getSearchData()),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Search failed");
