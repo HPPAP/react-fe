@@ -96,7 +96,7 @@ function Search() {
   const handleTestClick = async () => {
     try {
       const response = await axios.post(
-        `${process.env.REACT_APP_BE_URL}/api/test-post`,
+        `${import.meta.env.VITE_BE_URL}/api/test-post`,
         { message: "Hello from the Test button!" }
       );
 

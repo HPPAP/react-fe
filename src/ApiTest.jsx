@@ -6,8 +6,11 @@ function ApiTest() {
 
   useEffect(() => {
     axios
-      .get(`${process.env.REACT_APP_BE_URL}/api/test`) // Make sure this matches your Flask API
-      .then((response) => setMessage(response.data.message))
+      .get(`${import.meta.env.VITE_BE_URL}/api/test`) // Make sure this matches your Flask API
+      .then((response) => {
+        console.log(response);
+        setMessage(response.data.message);
+      })
       .catch((error) => console.error("Error fetching data:", error));
   }, []);
 
@@ -15,6 +18,7 @@ function ApiTest() {
     <div>
       <h2>Flask API Response:</h2>
       <p>{message || "Loading..."}</p>
+      {`${import.meta.env.VITE_BE_URL}/api/test`}
     </div>
   );
 }
