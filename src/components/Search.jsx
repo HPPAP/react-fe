@@ -113,7 +113,9 @@ function Search() {
     try {
       const response = await axios({
         method: "post",
-        url: `${import.meta.env.VITE_BE_URL}/api/test-post`,
+        // url: `${import.meta.env.VITE_BE_URL}/api/test-post`,
+        url: `${import.meta.env.VITE_BE_URL}/api/search`,
+
         data: {
           message: "Hello from the Test button!",
         },
@@ -121,6 +123,7 @@ function Search() {
       })
         .then((data) => {
           console.log(data);
+          setTestResponse(data.data.results);
           return data.data.message;
         })
         .catch((error) => console.log(error));
