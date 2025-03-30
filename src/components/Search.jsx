@@ -111,12 +111,21 @@ function Search() {
 
   const handleTestClick = async () => {
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_BE_URL}/api/test-post`,
-        { message: "Hello from the Test button!" }
-      );
+      const response = await axios({
+        method: "post",
+        url: `${import.meta.env.VITE_BE_URL}/api/test-post`,
+        data: {
+          message: "Hello from the Test button!",
+        },
+        // headers: { "Content- Type": "application/json" },
+      })
+        .then((data) => {
+          console.log(data);
+          return data.data.message;
+        })
+        .catch((error) => console.log(error));
 
-      setTestResponse(response.data);
+      setTestResponse(response);
     } catch (err) {
       console.error("Test POST error:", err);
       setTestResponse({ error: err.message });
