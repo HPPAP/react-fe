@@ -298,3 +298,60 @@ label {
     }
   }
 }
+
+.year-dropdown {
+  position: absolute;
+  width: 100%;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  margin-top: 2px;
+  
+  .year-dropdown-columns {
+    display: flex;
+    width: 100%;
+  }
+  
+  .dropdown-column {
+    flex: 1;
+    width: 50%;
+    
+    &:first-child {
+      border-right: 1px solid #eee;
+    }
+    
+    h4 {
+      margin: 0;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      color: #666;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+    }
+    
+    .dropdown-items {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .dropdown-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      
+      &:hover {
+        background-color: #f5f5f5;
+      }
+    }
+    
+    .year-option-empty {
+      padding: 8px 12px;
+      text-align: center;
+      color: #666;
+      font-style: italic;
+    }
+  }
+}
