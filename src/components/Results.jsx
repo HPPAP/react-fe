@@ -149,7 +149,6 @@ const sx = {
     p: 0,
     fontFamily: "Arial, sans-serif",
     position: "relative",
-    width: "100%",
     width: 1200,
     minHeight: "100vh",
     boxSizing: "border-box",
