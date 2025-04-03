@@ -29,7 +29,7 @@ export default function Verification({
           <Box sx={sx.pdfBorder}>
             <img
               src={panel.image_url}
-              alt="picture aint loading brah"
+              alt="picture aint loading brah. cooper"
               style={{ width: "100%", height: "100%" }}
             />
           </Box>
