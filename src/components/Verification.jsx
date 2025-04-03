@@ -5,65 +5,61 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import RemoveIcon from "@mui/icons-material/Remove";
 import "../App.css";
-import { Link, useParams, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-export default function Verification({ i, panels, next, cooper }) {
+export default function Verification({
+  i,
+  panels,
+  correct_next,
+  overview,
+  fail_next,
+  move_next,
+}) {
   const panel = panels[i];
+
   return (
     <>
-      <Stack
-        direction={"row"}
-        spacing={5}
-        justifyContent={"center"}
-        marginTop={5}
-      >
+      <Stack sx={sx.compareStack}>
         {/* Stack 1: Searched Text */}
         <Stack sx={sx.boxBorder}>
           <Box sx={sx.textContainer}>{panel.text}</Box>
         </Stack>
-        {/* Stack 1: PDF Image */}
+        {/* Stack 2: PDF Image */}
         <Stack sx={sx.boxBorder}>
-          <Box
-            sx={{
-              width: 400,
-              height: 600,
-            }}
-          >
+          <Box sx={sx.pdfBorder}>
             <img
               src={panel.image_url}
-              alt="this aint working brah"
+              alt="picture aint loading brah"
               style={{ width: "100%", height: "100%" }}
             />
           </Box>
         </Stack>
       </Stack>
-      <Stack
-        direction={"row"}
-        justifyContent={"center"}
-        marginTop={3}
-        spacing={5}
-      >
+      <Stack sx={sx.buttonsStack}>
         <IconButton
-          onClick={next}
+          onClick={correct_next} // highlight panel green and move to next page
           sx={{ ...sx.circleButton, backgroundColor: "green" }}
         >
           <CheckIcon sx={sx.icon} />
         </IconButton>
-        {/* <IconButton sx={{ ...sx.circleButton, backgroundColor: "red" }}>
+        <IconButton
+          // sx={{ ...sx.circleButton, backgroundColor: "red" }}
+          onClick={fail_next} // Call highlight callback when red button is clicked
+          sx={{ ...sx.circleButton, backgroundColor: "red" }}
+        >
           <CloseIcon sx={sx.icon} />
         </IconButton>
-        <IconButton sx={{ ...sx.circleButton, backgroundColor: "yellow" }}>
+
+        <IconButton
+          onClick={move_next}
+          sx={{ ...sx.circleButton, backgroundColor: "yellow" }}
+        >
           <RemoveIcon sx={sx.icon} />
-        </IconButton> */}
+        </IconButton>
       </Stack>
-      <Stack
-        direction={"row"}
-        justifyContent="flex-end"
-        marginTop={-7}
-        marginRight={5}
-      >
+      <Stack sx={sx.overviewStack}>
         <Button
-          onClick={cooper}
+          onClick={overview}
           variant="outlined"
           component={Link}
           to="/Results"
@@ -76,6 +72,27 @@ export default function Verification({ i, panels, next, cooper }) {
 }
 
 const sx = {
+  compareStack: {
+    flexDirection: "row",
+    gap: 5,
+    justifyContent: "center",
+    mt: 5,
+  },
+
+  overviewStack: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    mt: -7,
+    mr: 5,
+  },
+
+  buttonsStack: {
+    flexDirection: "row",
+    justifyContent: "center",
+    mt: 5,
+    gap: 3,
+  },
+
   boxBorder: {
     width: 400,
     height: 600,
@@ -83,6 +100,11 @@ const sx = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+  },
+
+  pdfBorder: {
+    width: 400,
+    height: 600,
   },
 
   circleButton: {
@@ -96,8 +118,8 @@ const sx = {
   },
 
   image: {
-    height: 600,
     width: 400,
+    height: 600,
   },
 
   icon: {

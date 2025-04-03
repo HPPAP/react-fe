@@ -1,5 +1,6 @@
 @use "sass:color";
 
+
 .results-page {
   padding: 0;
   font-family: Arial, sans-serif;
@@ -48,6 +49,10 @@
           align-items: center;
           border: 1px solid #ddd;
           width: 95%;
+
+          .result-header {
+              color: black;
+            }
         }
       }
     }
