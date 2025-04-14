@@ -45,7 +45,7 @@ export default function Verification({
         {/* Stack 2: PDF Image */}
         <Stack sx={sx.boxBorder}>
           <Box sx={sx.pdfBorder} onWheel={handleWheel}>
-            <img
+            {/* <img
               src={panel.image_url}
               alt="document preview"
               style={{
@@ -55,6 +55,18 @@ export default function Verification({
                 minHeight: "100%",
                 objectFit: "contain",
                 transition: "all 0.1s ease-out",
+              }}
+            /> */}
+            <img
+              src={panel.image_url}
+              alt="document preview"
+              style={{
+                transform: `scale(${zoomLevel})`,
+                transformOrigin: "top left",
+                width: "100%",
+                height: "auto",
+                objectFit: "contain",
+                transition: "transform 0.1s ease-out",
               }}
             />
           </Box>
@@ -101,7 +113,6 @@ const sx = {
     flexDirection: "row",
     gap: 5,
     justifyContent: "center",
-    mt: 5,
   },
 
   overviewStack: {
@@ -119,7 +130,7 @@ const sx = {
   },
 
   boxBorder: {
-    width: 400,
+    width: 700,
     height: 600,
     border: 1,
     display: "flex",
@@ -132,6 +143,11 @@ const sx = {
     height: 600,
     overflow: "auto", // Changed from 'auto' to 'scroll' to always show bars
     cursor: "zoom-in",
+
+    // make sure this works
+    display: "flex",
+    justifyContent: "flex-start", // Ensures image aligns to top-left for natural scroll
+    alignItems: "flex-start",
   },
 
   circleButton: {
@@ -145,7 +161,7 @@ const sx = {
   },
 
   image: {
-    width: 400,
+    width: 600,
     height: 600,
   },
 

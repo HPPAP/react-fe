@@ -1,15 +1,29 @@
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { Stack, Typography, TextField, Button, Box } from "@mui/material";
 import { Link } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import "../App.css";
 
 export default function Projects() {
-  const [projects, setProjects] = useState([]);
+  const [projects, set_projects] = useState([]);
+
+  useEffect(() => {
+    axios({
+      method: "get",
+      url: `${import.meta.env.VITE_BE_URL}/api/projects`,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
+        set_projects(response.data.projects);
+      })
+      .catch((error) => console.log(error));
+  }, []);
 
   const addNewProject = () => {
-    const newProject = { id: Date.now(), name: "New Project" };
-    setProjects([...projects, newProject]);
+    navigate("/Search"); // change "/Search" to the route you want
   };
 
   return (
@@ -46,9 +60,12 @@ export default function Projects() {
           </Stack>
 
           {/* Render dynamically created project boxes */}
-          {projects.map((project) => (
-            <Box key={project.id} sx={sx.projectBox}>
-              <Typography>{project.name}</Typography>
+          {projects.map((project, i) => (
+            <Box key={i} sx={sx.projectBox}>
+              <Typography>
+                {i}. {project.title} volumes: {project.volumes} pages:{" "}
+                {project.pages}
+              </Typography>
             </Box>
           ))}
         </Stack>

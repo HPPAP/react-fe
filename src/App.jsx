@@ -19,7 +19,7 @@ function HomePage() {
             <button className="results-button">Results</button>
           </a>
           <a href="/projects">
-            <button className="projects-button">Results</button>
+            <button className="projects-button">Projects</button>
           </a>
         </nav>
       </header>
