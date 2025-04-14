@@ -1,9 +1,10 @@
-import React from 'react'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import ApiTest from './ApiTest'
-import Search from './components/Search'
-import Results from './components/Results'
-import './App.css'
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import ApiTest from "./ApiTest";
+import Search from "./components/Search";
+import Results from "./components/Results";
+import Projects from "./components/Projects";
+import "./App.css";
 
 function HomePage() {
   return (
@@ -16,6 +17,9 @@ function HomePage() {
           </a>
           <a href="/results">
             <button className="results-button">Results</button>
+          </a>
+          <a href="/projects">
+            <button className="projects-button">Results</button>
           </a>
         </nav>
       </header>
@@ -31,9 +35,10 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/search" element={<Search />} />
         <Route path="/results" element={<Results />} />
+        <Route path="/projects" element={<Projects />} />
       </Routes>
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;
