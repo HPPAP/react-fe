@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "../App.css";
 import "./Search.scss";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 function Search() {
+  const { id } = useParams();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   // Add state for each field's tags and current input
   const [fields, setFields] = useState({
@@ -252,6 +253,7 @@ function Search() {
 
   return (
     <div className="search-page">
+      {id}
       {/* Main Fields */}
       <div className="search-fields">
         {/* Year */}

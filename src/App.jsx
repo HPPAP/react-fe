@@ -33,8 +33,13 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/search" element={<Search />} />
         <Route path="/results" element={<Results />} />
+
+        <Route path="project/:id">
+          <Route path="search" element={<Search />} />
+          <Route path="edit" element={<p>project</p>} />
+        </Route>
+
         <Route path="/projects" element={<Projects />} />
       </Routes>
     </Router>
