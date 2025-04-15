@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Stack, Typography, TextField, Button, Box } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import "../App.css";
 
 export default function Projects() {
   const [projects, set_projects] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     axios({
@@ -61,10 +62,13 @@ export default function Projects() {
 
           {/* Render dynamically created project boxes */}
           {projects.map((project, i) => (
-            <Box key={i} sx={sx.projectBox}>
+            <Box
+              key={i}
+              sx={sx.projectBox}
+              onClick={() => navigate(`/project/${project._id}`)}
+            >
               <Typography>
-                {i}. {project.title} volumes: {project.volumes} pages:{" "}
-                {project.pages}
+                {i}. {project.title} pages: {project.description}
               </Typography>
             </Box>
           ))}

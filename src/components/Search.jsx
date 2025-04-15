@@ -177,6 +177,7 @@ function Search() {
 
     // Create the search data object
     const searchData = getSearchData();
+    console.log(searchData);
 
     // Log what we're sending to the backend
     console.log("Sending search data to backend:", searchData);

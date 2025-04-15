@@ -6,6 +6,11 @@ import Results from "./components/Results";
 import Projects from "./components/Projects";
 import "./App.css";
 
+import ProjectLayout from "./project/Layout.jsx";
+import ProjectSettings from "./project/Settings.jsx";
+import ProjectEdit from "./project/Edit.jsx";
+import ProjectView from "./project/View.jsx";
+
 function HomePage() {
   return (
     <div className="App">
@@ -35,9 +40,12 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/results" element={<Results />} />
 
-        <Route path="project/:id">
-          <Route path="search" element={<Search />} />
-          <Route path="edit" element={<p>project</p>} />
+        <Route path="search" element={<Search />} />
+
+        <Route path="project/:id" element={<ProjectLayout />}>
+          <Route index element={<ProjectView />} />
+          <Route path="edit" element={<ProjectEdit />} />
+          <Route path="settings" element={<ProjectSettings />} />
         </Route>
 
         <Route path="/projects" element={<Projects />} />
