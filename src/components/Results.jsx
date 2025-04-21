@@ -8,6 +8,10 @@ import { Stack, Typography, Button, Box } from "@mui/material";
 function Results() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // added
+  const { pageIds = [], projectId } = location.state || {};
+
   const [panels, setPanels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -78,6 +82,34 @@ function Results() {
     set_popup((prev) => (prev < panels.length - 1 ? prev + 1 : prev)); // Move to next panel
   };
 
+  // added handle save
+  const handleSave = async () => {
+    // Verify projectId exists
+    if (!projectId) {
+      console.error("No project ID found in state");
+      return;
+    }
+
+    // Get page IDs from panels
+    const pageIdsToSave = panels.map((r) => r._id).filter((id) => id);
+
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_BE_URL}/api/project/update`,
+        {
+          project_id: projectId, // Match backend expectation
+          pages: pageIdsToSave,
+        }
+      );
+
+      if (response.data.success) {
+        navigate(`/project/${projectId}`);
+      }
+    } catch (err) {
+      console.error("Save failed:", err.response?.data);
+    }
+  };
+
   // If we're still loading, show a loading message
   if (loading) {
     return <div className="loading">Loading results...</div>;
@@ -128,11 +160,19 @@ function Results() {
           </Stack>
 
           <Stack direction="row" sx={sx.buttonRow}>
-            <Button variant="contained" sx={sx.backButton} href="/">
+            <Button variant="contained" href="/">
               Home
             </Button>
-            <Button variant="contained" sx={sx.searchBtn} href="/search">
+            <Button variant="contained" href="/search">
               Back to Search
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              disabled={!pageIds.length}
+              onClick={handleSave}
+            >
+              Save to Project
             </Button>
           </Stack>
         </>

@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from "react";
+// src/components/Search.jsx
+
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import "../App.css";
 import "./Search.scss";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { Button } from "@mui/material";
 
 function Search() {
   const { id } = useParams();
+  const navigate = useNavigate();
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  // Add state for each field's tags and current input
   const [fields, setFields] = useState({
     pageNumber: { tags: [], currentInput: "" },
     volume: { tags: [], currentInput: "" },
@@ -15,113 +19,85 @@ function Search() {
     keywords: { tags: [], currentInput: "" },
     year: { tags: [], currentInput: "" },
   });
-  // Add state for loading and error
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Add state for available years
   const [availableYears, setAvailableYears] = useState({
     years: [],
     ranges: [],
   });
-  // Add state for filtered years
   const [filteredYears, setFilteredYears] = useState({ years: [], ranges: [] });
-
-  const [testResponse, setTestResponse] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [resultCount, setResultCount] = useState(0);
 
-  const navigate = useNavigate();
+  const dropdownRef = useRef(null);
+  const textareaRef = useRef(null);
 
-  // Fetch available years when component mounts
+  // Close dropdown on outside click
   useEffect(() => {
-    const fetchYears = async () => {
-      try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BE_URL}/api/years`
-        );
-        if (response.data) {
-          setAvailableYears(response.data);
-        }
-      } catch (err) {
-        console.error("Error fetching years:", err);
+    function handleClickOutside(event) {
+      if (
+        isDropdownOpen &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target) &&
+        textareaRef.current &&
+        !textareaRef.current.contains(event.target)
+      ) {
+        setIsDropdownOpen(false);
       }
-    };
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isDropdownOpen]);
 
-    fetchYears();
+  // Fetch available years
+  useEffect(() => {
+    axios
+      .get(`${import.meta.env.VITE_BE_URL}/api/years`)
+      .then((res) => setAvailableYears(res.data))
+      .catch((err) => console.error(err));
   }, []);
 
-  // Filter years based on user input
-  const filterYears = (input) => {
-    if (!input) {
-      // If input is empty, show all years
-      setFilteredYears(availableYears);
-      return;
-    }
-
-    const yearInput = input.trim();
-    const inputYear = parseInt(yearInput, 10);
-
-    // Filter individual years
-    const filteredIndividualYears = availableYears.years.filter((year) => {
-      const yearStr = year.toString();
-      return yearStr.startsWith(yearInput);
-    });
-
-    // Filter ranges
-    const filteredRanges = availableYears.ranges.filter((range) => {
-      // Check if the range starts with the input
-      if (range.startsWith(yearInput)) {
-        return true;
-      }
-
-      // Check if the input year falls within the range
-      if (inputYear && !isNaN(inputYear)) {
-        // Parse range like "1781-85" or "1781-1785"
-        const rangeMatch = range.match(/(\d{4})[-\/](\d{2}|\d{4})/);
-        if (rangeMatch) {
-          const startYear = parseInt(rangeMatch[1], 10);
-          const endSuffix = rangeMatch[2];
-          let endYear;
-
-          if (endSuffix.length === 2) {
-            // Handle shortened form like "1781-85"
-            endYear = parseInt(
-              startYear.toString().substring(0, 2) + endSuffix,
-              10
-            );
-          } else {
-            // Handle full form like "1781-1785"
-            endYear = parseInt(endSuffix, 10);
-          }
-
-          return inputYear >= startYear && inputYear <= endYear;
-        }
-      }
-
-      return false;
-    });
-
-    setFilteredYears({
-      years: filteredIndividualYears,
-      ranges: filteredRanges,
-    });
-  };
-
+  // Initialize filtered years
   useEffect(() => {
-    // Initialize filtered years with all available years
     setFilteredYears(availableYears);
   }, [availableYears]);
 
+  // Filter years/ranges
+  const filterYears = (input) => {
+    if (!input) {
+      setFilteredYears(availableYears);
+      return;
+    }
+    const yearInput = input.trim();
+    const n = parseInt(yearInput, 10);
+    const years = availableYears.years.filter((y) =>
+      y.toString().startsWith(yearInput)
+    );
+    const ranges = availableYears.ranges.filter((r) => {
+      if (r.startsWith(yearInput)) return true;
+      const m = r.match(/(\d{4})-(\d{2}|\d{4})/);
+      if (m && !isNaN(n)) {
+        const start = parseInt(m[1], 10);
+        const end = parseInt(
+          m[2].length === 2 ? m[1].slice(0, 2) + m[2] : m[2],
+          10
+        );
+        return n >= start && n <= end;
+      }
+      return false;
+    });
+    setFilteredYears({ years, ranges });
+  };
+
   const handleKeyDown = (e, field) => {
     if (e.key === "Enter") {
-      e.preventDefault(); // Prevent new line
-      const value = fields[field].currentInput.trim();
-      if (value) {
+      e.preventDefault();
+      const val = fields[field].currentInput.trim();
+      if (val) {
         setFields((prev) => ({
           ...prev,
           [field]: {
-            tags: [...prev[field].tags, value],
+            tags: [...prev[field].tags, val],
             currentInput: "",
           },
         }));
@@ -129,228 +105,187 @@ function Search() {
     }
   };
 
-  // Modify handleInputChange for the year field to filter years
   const handleInputChange = (e, field) => {
-    const value = e.target.value;
+    const val = e.target.value;
+    setFields((prev) => ({
+      ...prev,
+      [field]: { ...prev[field], currentInput: val },
+    }));
+    if (field === "year") filterYears(val);
+  };
 
+  const removeTag = (field, idx) => {
     setFields((prev) => ({
       ...prev,
       [field]: {
         ...prev[field],
-        currentInput: value,
-      },
-    }));
-
-    // Filter years when changing the year input
-    if (field === "year") {
-      filterYears(value);
-    }
-  };
-
-  const removeTag = (field, tagIndex) => {
-    setFields((prev) => ({
-      ...prev,
-      [field]: {
-        ...prev[field],
-        tags: prev[field].tags.filter((_, index) => index !== tagIndex),
+        tags: prev[field].tags.filter((_, i) => i !== idx),
       },
     }));
   };
 
-  // Update getSearchData function to properly handle year ranges
-  const getSearchData = () => {
-    // If the year tag is a range (like "1640-42"), we need to parse it
-    let yearValue = fields.year.tags.length > 0 ? fields.year.tags[0] : null;
-
-    return {
-      pageNumber: fields.pageNumber.tags,
-      volume: fields.volume.tags,
-      topics: fields.topics.tags,
-      keywords: fields.keywords.tags,
-      year: yearValue,
-    };
-  };
+  const getSearchData = () => ({
+    pageNumber: fields.pageNumber.tags,
+    volume: fields.volume.tags,
+    topics: fields.topics.tags,
+    keywords: fields.keywords.tags,
+    year: fields.year.tags[0] || null,
+  });
 
   const handleSearch = async () => {
     setIsLoading(true);
     setError(null);
-
-    // Create the search data object
-    const searchData = getSearchData();
-    console.log(searchData);
-
-    // Log what we're sending to the backend
-    console.log("Sending search data to backend:", searchData);
-
     try {
-      const response = await axios({
-        method: "post",
-        url: `${import.meta.env.VITE_BE_URL}/api/search`,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        data: searchData,
-      });
-
-      console.log("Full response from backend:", response.data);
-
-      // Get results with proper null checks
-      const results = response.data?.results?.results || [];
-      const count = response.data?.results?.count || 0;
-
+      const { data } = await axios.post(
+        `${import.meta.env.VITE_BE_URL}/api/search`,
+        getSearchData()
+      );
+      const results = data.results.results || [];
       setSearchResults(results);
-      setResultCount(count);
-
-      // Only proceed with navigation if we have results
-      if (results && results.length > 0) {
-        // Extract page IDs from search results
-        const pageIds = results.map((result) => result._id);
-
-        // Navigate to Results page with the page IDs
-        navigate("/results", { state: { pageIds } });
+      setResultCount(data.results.count || 0);
+      if (results.length > 0) {
+        const pageIds = results.map((r) => r._id);
+        // pass pageids and projectid
+        navigate("/results", {
+          state: {
+            pageIds,
+            projectId: id,
+          },
+        });
       }
-    } catch (err) {
-      setError("Failed to perform search. Please try again.");
-      console.error("Search error:", err);
+    } catch {
+      setError("Search failed. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleTestClick = async () => {
-    try {
-      const response = await axios({
-        method: "post",
-        url: `${import.meta.env.VITE_BE_URL}/api/test-post`,
-        data: {
-          message: "Hello from the Test button!",
-        },
-      })
-        .then((data) => {
-          console.log(data);
-          setTestResponse(data.data.results);
-          return data.data.message;
-        })
-        .catch((error) => console.log(error));
-
-      setTestResponse(response);
-    } catch (err) {
-      console.error("Test POST error:", err);
-      setTestResponse({ error: err.message });
-    }
-  };
-
-  // Function to handle year selection from dropdown
-  const handleYearSelect = (selectedYear) => {
-    setFields((prev) => ({
-      ...prev,
-      year: {
-        tags: [selectedYear], // Replace any existing year with the selected one
-        currentInput: "",
-      },
-    }));
-    setIsDropdownOpen(false);
-  };
-
   return (
-    <div className="search-page">
-      {id}
-      {/* Main Fields */}
+    <div className="search-page" style={{ marginLeft: "1rem" }}>
+      {/* Home button */}
+      <Button
+        variant="contained"
+        component={Link}
+        to="/Projects"
+        sx={{
+          mb: 2,
+          backgroundColor: "#45b6fe",
+          color: "white",
+          "&:hover": { backgroundColor: "#369cd1" },
+        }}
+      >
+        Home
+      </Button>
+
+      {id && <div>Route ID: {id}</div>}
+
       <div className="search-fields">
-        {/* Year */}
+        {/* Year Field */}
         <div className="field-block">
           <label className="field-label">Year</label>
-          <div className="input-container">
+          <div className="input-container" style={{ position: "relative" }}>
             <div className="tags-container">
-              {fields.year.tags.map((tag, index) => (
-                <span key={index} className="tag">
+              {fields.year.tags.map((tag, i) => (
+                <span key={i} className="tag">
                   {tag}
-                  <button onClick={() => removeTag("year", index)}>
-                    &times;
-                  </button>
+                  <button onClick={() => removeTag("year", i)}>&times;</button>
                 </span>
               ))}
             </div>
-            <div className="year-input-wrapper">
-              <textarea
-                placeholder="Enter year (e.g. 1985)..."
-                value={fields.year.currentInput}
-                onChange={(e) => {
-                  // Validate year input to only allow numbers and ranges
-                  const value = e.target.value.replace(/[^0-9\-\/]/g, "");
-                  handleInputChange({ target: { value } }, "year");
+            <textarea
+              ref={textareaRef}
+              placeholder="Enter year (e.g. 1985)…"
+              value={fields.year.currentInput}
+              onChange={(e) => handleInputChange(e, "year")}
+              onClick={() => setIsDropdownOpen(true)}
+              onKeyDown={(e) => handleKeyDown(e, "year")}
+            />
+            {isDropdownOpen && (
+              <div
+                className="database-dropdown"
+                ref={dropdownRef}
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  width: "350px",
+                  margin: 0,
+                  padding: 0,
+                  zIndex: 10,
                 }}
-                onClick={() => setIsDropdownOpen(true)}
-                onKeyDown={(e) => handleKeyDown(e, "year")}
-              />
-              {isDropdownOpen &&
-                (filteredYears.ranges.length > 0 ||
-                  filteredYears.years.length > 0) && (
-                  <div className="year-dropdown">
-                    <div className="year-dropdown-columns">
-                      {/* Year Ranges Column */}
-                      <div className="dropdown-column">
-                        <h4>Year Ranges</h4>
-                        <div className="dropdown-items">
-                          {filteredYears.ranges.length > 0 ? (
-                            filteredYears.ranges.map((range, index) => (
-                              <div
-                                key={`range-${index}`}
-                                className="dropdown-item"
-                                onClick={() => handleYearSelect(range)}
-                              >
-                                {range}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="year-option-empty">
-                              No matching ranges
-                            </div>
-                          )}
+              >
+                <div
+                  className="dropdown-content"
+                  style={{
+                    display: "flex",
+                    gap: "1rem",
+                    maxHeight: "160px",
+                    overflowY: "auto",
+                    margin: 0,
+                    padding: "0.5rem",
+                  }}
+                >
+                  <div className="dropdown-column" style={{ flex: 1 }}>
+                    <h4 style={{ margin: 0, padding: "0 0 4px 0" }}>Ranges</h4>
+                    {filteredYears.ranges.length > 0 ? (
+                      filteredYears.ranges.map((range) => (
+                        <div
+                          key={range}
+                          className="dropdown-item"
+                          onClick={() => {
+                            setFields((prev) => ({
+                              ...prev,
+                              year: { tags: [range], currentInput: "" },
+                            }));
+                            setIsDropdownOpen(false);
+                          }}
+                        >
+                          {range}
                         </div>
-                      </div>
-
-                      {/* Individual Years Column */}
-                      <div className="dropdown-column">
-                        <h4>Individual Years</h4>
-                        <div className="dropdown-items">
-                          {filteredYears.years.length > 0 ? (
-                            filteredYears.years.map((year, index) => (
-                              <div
-                                key={`year-${index}`}
-                                className="dropdown-item"
-                                onClick={() =>
-                                  handleYearSelect(year.toString())
-                                }
-                              >
-                                {year}
-                              </div>
-                            ))
-                          ) : (
-                            <div className="year-option-empty">
-                              No matching years
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                      ))
+                    ) : (
+                      <div className="year-option-empty">No ranges</div>
+                    )}
                   </div>
-                )}
-            </div>
+                  <div className="dropdown-column" style={{ flex: 1 }}>
+                    <h4 style={{ margin: 0, padding: "0 0 4px 0" }}>Years</h4>
+                    {filteredYears.years.length > 0 ? (
+                      filteredYears.years.map((yr) => (
+                        <div
+                          key={yr}
+                          className="dropdown-item"
+                          onClick={() => {
+                            setFields((prev) => ({
+                              ...prev,
+                              year: { tags: [yr.toString()], currentInput: "" },
+                            }));
+                            setIsDropdownOpen(false);
+                          }}
+                        >
+                          {yr}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="year-option-empty">No years</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Topics */}
+        {/* Topics Field */}
         <div className="field-block">
           <label htmlFor="topics-input" className="field-label">
             Topics
           </label>
           <div className="input-container">
             <div className="tags-container">
-              {fields.topics.tags.map((tag, index) => (
-                <span key={index} className="tag">
+              {fields.topics.tags.map((tag, i) => (
+                <span key={i} className="tag">
                   {tag}
-                  <button onClick={() => removeTag("topics", index)}>
+                  <button onClick={() => removeTag("topics", i)}>
                     &times;
                   </button>
                 </span>
@@ -358,7 +293,7 @@ function Search() {
             </div>
             <textarea
               id="topics-input"
-              placeholder="Press Enter to add..."
+              placeholder="Press Enter to add…"
               value={fields.topics.currentInput}
               onChange={(e) => handleInputChange(e, "topics")}
               onKeyDown={(e) => handleKeyDown(e, "topics")}
@@ -366,17 +301,17 @@ function Search() {
           </div>
         </div>
 
-        {/* Keywords */}
+        {/* Keywords Field */}
         <div className="field-block">
           <label htmlFor="keywords-input" className="field-label">
             Keywords
           </label>
           <div className="input-container">
             <div className="tags-container">
-              {fields.keywords.tags.map((tag, index) => (
-                <span key={index} className="tag">
+              {fields.keywords.tags.map((tag, i) => (
+                <span key={i} className="tag">
                   {tag}
-                  <button onClick={() => removeTag("keywords", index)}>
+                  <button onClick={() => removeTag("keywords", i)}>
                     &times;
                   </button>
                 </span>
@@ -384,7 +319,7 @@ function Search() {
             </div>
             <textarea
               id="keywords-input"
-              placeholder="Press Enter to add..."
+              placeholder="Press Enter to add…"
               value={fields.keywords.currentInput}
               onChange={(e) => handleInputChange(e, "keywords")}
               onKeyDown={(e) => handleKeyDown(e, "keywords")}
@@ -393,7 +328,7 @@ function Search() {
         </div>
       </div>
 
-      {/* Bottom Buttons */}
+      {/* Search button */}
       <div className="button-row">
         <div className="right-buttons">
           <button
@@ -407,20 +342,15 @@ function Search() {
         </div>
       </div>
 
-      {/* Optionally, display a loading indicator */}
-      {isLoading && <div>Loading...</div>}
+      {isLoading && <div>Loading…</div>}
       {error && <div className="error">{error}</div>}
 
-      {/* Display search results */}
-      {searchResults && searchResults.length > 0 && (
+      {searchResults.length > 0 && (
         <div className="search-results">
           <h2>Search Results ({resultCount} total)</h2>
           <ul>
-            {searchResults.map((result, index) => (
-              <li key={index}>
-                {/* Adjust this based on your actual result structure */}
-                {JSON.stringify(result)}
-              </li>
+            {searchResults.map((res, idx) => (
+              <li key={idx}>{JSON.stringify(res)}</li>
             ))}
           </ul>
         </div>

@@ -1,63 +1,96 @@
 import { useState, useEffect } from "react";
 import { Stack, Typography } from "@mui/material";
 import axios from "axios";
-
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 
-export default function Main() {
+export default function ProjectLayout() {
   const { id } = useParams();
-
-  const [project, set_project] = useState();
+  const [project, setProject] = useState(null);
 
   useEffect(() => {
-    axios({
-      method: "post",
-      url: `${import.meta.env.VITE_BE_URL}/api/project`,
-      headers: { "Content-Type": "application/json" },
-      data: { id },
-    })
-      .then((response) => set_project(response.data.project))
-      .catch((error) => console.log(error));
+    axios
+      .post(`${import.meta.env.VITE_BE_URL}/api/project`, { id })
+      .then((res) => setProject(res.data.project))
+      .catch((err) => console.error(err));
   }, [id]);
 
-  const sx = {
-    wrapper: { minWidth: 1000, height: 1, mx: 5, my: 2 },
-    container: { width: 1 },
-  };
   return (
-    <Stack sx={sx.wrapper} spacing={2}>
-      <Navigation id={id} />
-      <Stack sx={sx.container}>
+    <Stack sx={sx.layoutWrapper}>
+      <Navigation />
+      <Stack sx={sx.contentContainer}>
         {project && <Outlet context={{ project }} />}
       </Stack>
     </Stack>
   );
 }
 
-function Navigation({ id }) {
+function Navigation() {
   const navigate = useNavigate();
-  const sx = {
-    wrapper: { width: 1, height: 1, border: 1 },
-    btn: {
-      p: 1,
-      cursor: "pointer",
-      "&:hover": { backgroundColor: "lightgrey" },
-    },
-  };
+
   return (
-    <Stack direction="row" spacing={1} sx={sx.wrapper}>
-      <Typography sx={sx.btn} onClick={() => navigate("/projects")}>
+    <Stack direction="row" sx={sx.navWrapper}>
+      <Typography
+        variant="button"
+        sx={sx.navButton}
+        onClick={() => navigate("/projects")}
+      >
         Home
       </Typography>
-      <Typography sx={sx.btn} onClick={() => navigate(``)}>
+      <Typography
+        variant="button"
+        sx={sx.navButton}
+        onClick={() => navigate("")}
+      >
         View
       </Typography>
-      <Typography onClick={() => navigate("edit")} sx={sx.btn}>
+      <Typography
+        variant="button"
+        sx={sx.navButton}
+        onClick={() => navigate("edit")}
+      >
         Edit
       </Typography>
-      <Typography onClick={() => navigate("settings")} sx={sx.btn}>
+      <Typography
+        variant="button"
+        sx={sx.navButton}
+        onClick={() => navigate("settings")}
+      >
         Settings
       </Typography>
     </Stack>
   );
 }
+
+const sx = {
+  layoutWrapper: {
+    width: "100%",
+    maxWidth: 1200,
+    mx: "auto",
+    my: 4,
+    px: 2,
+  },
+  contentContainer: {
+    width: "100%",
+  },
+  navWrapper: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between", // spread buttons evenly
+    border: "1px solid white", // white outline
+    borderRadius: 2,
+    p: 2,
+    mb: 3,
+    backgroundColor: "transparent", // remove white fill
+  },
+  navButton: {
+    color: "white",
+    px: 2,
+    py: 1,
+    borderRadius: 1,
+    cursor: "pointer",
+    fontWeight: 500,
+    "&:hover": {
+      backgroundColor: "rgba(255,255,255,0.1)", // subtle white hover
+    },
+  },
+};

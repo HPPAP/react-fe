@@ -18,7 +18,8 @@ export default function Main() {
       <Typography>DESCRIPTION: {project.description}</Typography>
       <Stack>
         <Typography>PAGES:</Typography>
-        {project.pages.map((e, i) => (
+        {/* if project.pages is empty, use [] */}
+        {(project.pages || []).map((e, i) => (
           <Typography key={i}>
             {i}. {e}
           </Typography>

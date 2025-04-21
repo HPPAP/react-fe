@@ -1,65 +1,91 @@
-import { useState, useEffect } from "react";
-import { Stack, Typography, TextField } from "@mui/material";
+import { useState } from "react";
+import { Stack, Typography, TextField, Button } from "@mui/material";
 import axios from "axios";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 
-export default function Main() {
+export default function Settings() {
   const { project } = useOutletContext();
-  const [title, set_title] = useState(project.title);
-  const [description, set_description] = useState(project.description);
+  const [title, setTitle] = useState(project.title);
+  const [description, setDescription] = useState(project.description);
+  const navigate = useNavigate();
 
   const sx = {
-    wrapper: { width: 1, border: 1 },
-    container: { width: 1, border: 1 },
-    bottom: {},
-    btn: {
-      p: 1,
-      cursor: "pointer",
-      "&:hover": { backgroundColor: "lightgrey" },
+    wrapper: { width: 1, p: 4, borderRadius: 2 },
+    field: {
+      width: 1,
+      mb: 2,
+      "& .MuiOutlinedInput-root": {
+        "& fieldset": { borderColor: "white" },
+        "&:hover fieldset": { borderColor: "white" },
+        "&.Mui-focused fieldset": { borderColor: "white" },
+        "& input": { color: "white" },
+        "& input::placeholder": { color: "white", opacity: 1 },
+      },
     },
+    btnRow: { display: "flex", gap: 2 },
   };
 
   function submit() {
-    axios({
-      method: "post",
-      url: `${import.meta.env.VITE_BE_URL}/api/project/update`,
-      headers: { "Content-Type": "application/json" },
-      data: { id: project._id, title, description },
-    })
-      .then((response) => console.log(response.data))
-      .catch((error) => console.log(error));
+    axios
+      .post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
+        id: project._id,
+        title,
+        description,
+      })
+      .then(() => {
+        navigate("/projects", { replace: true });
+      })
+      .catch((err) => console.error("Save failed", err));
   }
 
   function cancel() {
-    set_title(project.title);
-    set_description(project.description);
+    setTitle(project.title);
+    setDescription(project.description);
+  }
+
+  function handleDelete() {
+    axios
+      .post(`${import.meta.env.VITE_BE_URL}/api/project/delete`, {
+        id: project._id,
+      })
+      .then(() => {
+        navigate("/projects", { replace: true });
+      })
+      .catch((err) => console.error("Delete failed", err));
   }
 
   return (
-    <Stack sx={sx.wrapper}>
-      <Typography>Title</Typography>
+    <Stack sx={sx.wrapper} spacing={2}>
+      <Typography variant="h6">Title</Typography>
       <TextField
         value={title}
-        onChange={(event) => {
-          set_title(event.target.value);
-        }}
+        placeholder="Enter title"
+        onChange={(e) => setTitle(e.target.value)}
+        sx={sx.field}
+        variant="outlined"
+        fullWidth
       />
 
-      <Typography>Description</Typography>
+      <Typography variant="h6">Description</Typography>
       <TextField
         value={description}
-        onChange={(event) => {
-          set_description(event.target.value);
-        }}
+        placeholder="Enter description"
+        onChange={(e) => setDescription(e.target.value)}
+        sx={sx.field}
+        variant="outlined"
+        fullWidth
       />
 
-      <Stack direction="row" spacing={1} sx={sx.bottom}>
-        <Typography sx={sx.btn} onClick={submit}>
+      <Stack direction="row" sx={sx.btnRow}>
+        <Button variant="contained" color="primary" onClick={submit}>
           Save
-        </Typography>
-        <Typography sx={sx.btn} onClick={cancel}>
+        </Button>
+        <Button variant="contained" color="primary" onClick={cancel}>
           Cancel
-        </Typography>
+        </Button>
+        <Button variant="contained" color="secondary" onClick={handleDelete}>
+          Delete
+        </Button>
       </Stack>
     </Stack>
   );
