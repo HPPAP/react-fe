@@ -136,24 +136,28 @@ function Search() {
     setIsLoading(true);
     setError(null);
     try {
-      const { data } = await axios.post(
+      const response = await axios.post(
         `${import.meta.env.VITE_BE_URL}/api/search`,
-        getSearchData()
+        {
+          pageNumber: fields.pageNumber.tags,
+          volume: fields.volume.tags,
+          topics: fields.topics.tags,
+          keywords: fields.keywords.tags,
+          year: fields.year.tags[0],
+        }
       );
-      const results = data.results.results || [];
-      setSearchResults(results);
-      setResultCount(data.results.count || 0);
-      if (results.length > 0) {
-        const pageIds = results.map((r) => r._id);
-        // pass pageids and projectid
+
+      if (response.data && response.data.results) {
         navigate("/results", {
           state: {
-            pageIds,
+            pageIds: response.data.results.results.map((r) => r._id),
             projectId: id,
+            keywords: fields.keywords.tags,
           },
         });
       }
-    } catch {
+    } catch (error) {
+      console.error("Error:", error);
       setError("Search failed. Please try again.");
     } finally {
       setIsLoading(false);

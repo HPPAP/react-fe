@@ -9,15 +9,24 @@ function Results() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // added
-  const { pageIds = [], projectId } = location.state || {};
-
+  // Get pageIds, projectId, and keywords from location state
+  const { pageIds = [], projectId, keywords: initialKeywords = [] } = location.state || {};
+  
+  // Store keywords in state to preserve them
+  const [keywords, setKeywords] = useState(initialKeywords);
   const [panels, setPanels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [popup, set_popup] = useState(null);
   const [redPanels, setRedPanels] = useState([]); // red panels
   const [greenPanels, setGreenPanels] = useState([]); // Green panels
+
+  // Update keywords when location state changes
+  useEffect(() => {
+    if (initialKeywords.length > 0) {
+      setKeywords(initialKeywords);
+    }
+  }, [initialKeywords]);
 
   // Fetch search results using page IDs passed from Search component
   useEffect(() => {
@@ -58,8 +67,13 @@ function Results() {
   }, [location.state]);
 
   const handlePanelClick = (i) => {
+    console.log("handlePanelClick - keywords:", keywords); // Debug log
     set_popup(i);
-    console.log(i);
+  };
+
+  const handleOverview = () => {
+    console.log("handleOverview - keywords:", keywords); // Debug log
+    set_popup(null);
   };
 
   // Click red button, ensuing functionality
@@ -121,10 +135,11 @@ function Results() {
         <Verification
           i={popup}
           panels={panels}
-          overview={() => set_popup(null)}
+          overview={handleOverview}
           correct_next={markAsGreenAndNext}
           fail_next={markAsRedAndNext}
           move_next={moveToNext}
+          keywords={keywords}
         />
       ) : (
         <>

@@ -14,7 +14,9 @@ export default function Verification({
   overview,
   fail_next,
   move_next,
+  keywords = [],
 }) {
+  console.log("Verification component - keywords:", keywords); // Debug log
   const panel = panels[i];
   const [zoomLevel, setZoomLevel] = useState(1);
 
@@ -35,12 +37,27 @@ export default function Verification({
     }
   };
 
+  // Function to highlight keywords in text
+  const highlightKeywords = (text) => {
+    console.log("highlightKeywords - keywords:", keywords); // Debug log
+    if (!keywords.length) return text;
+    
+    const parts = text.split(new RegExp(`(${keywords.join('|')})`, 'gi'));
+    return parts.map((part, i) => 
+      keywords.some(keyword => keyword.toLowerCase() === part.toLowerCase()) 
+        ? <mark key={i} style={{ backgroundColor: 'yellow' }}>{part}</mark>
+        : part
+    );
+  };
+
   return (
     <>
       <Stack sx={sx.compareStack}>
         {/* Stack 1: Searched Text */}
         <Stack sx={sx.boxBorder}>
-          <Box sx={sx.textContainer}>{panel.text}</Box>
+          <Box sx={sx.textContainer}>
+            {highlightKeywords(panel.text)}
+          </Box>
         </Stack>
         {/* Stack 2: PDF Image */}
         <Stack sx={sx.boxBorder}>
