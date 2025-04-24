@@ -68,9 +68,11 @@ const sx = {
     mx: "auto",
     my: 4,
     px: 2,
+    border: 1,
   },
   contentContainer: {
     width: "100%",
+    border: 1,
   },
   navWrapper: {
     display: "flex",

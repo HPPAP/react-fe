@@ -231,6 +231,7 @@ function Search() {
                 >
                   <div className="dropdown-column" style={{ flex: 1 }}>
                     <h4 style={{ margin: 0, padding: "0 0 4px 0" }}>Ranges</h4>
+                    {console.log(JSON.stringify(filteredYears))}
                     {filteredYears.ranges.length > 0 ? (
                       filteredYears.ranges.map((range) => (
                         <div
