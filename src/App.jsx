@@ -34,15 +34,6 @@ function HomePage() {
         Projects
       </Button>
 
-      <Button
-        component={RouterLink}
-        to="/results"
-        variant="outlined"
-        sx={sx.navButton}
-      >
-        reuslts
-      </Button>
-
       <Box sx={{ mt: 4 }}>
         <ApiTest />
       </Box>
@@ -57,9 +48,6 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/results" element={<Results />} />
         <Route path="/projects" element={<Projects />} />
-
-        {/* added verification */}
-        <Route path="/results" element={<Results />} />
 
         <Route path="/search" element={<Search />} />
         <Route path="project/:id/search" element={<Search />} />

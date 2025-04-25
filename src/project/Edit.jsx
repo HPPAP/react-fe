@@ -56,7 +56,7 @@ function List({ pages }) {
 
   return (
     <Stack>
-      {JSON.stringify(curr_pages)}
+      {/* {JSON.stringify(curr_pages)} */}
       {pages.map((e, i) => (
         <Stack key={i} direction="row" spacing={2}>
           <Typography>{i + 1}. </Typography>

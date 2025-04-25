@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Stack, Typography, TextField, Button, Box } from "@mui/material";
 import "../App.css";
 import { Link } from "react-router-dom";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 export default function Verification({
@@ -16,7 +16,6 @@ export default function Verification({
   const { page_id, id } = useParams();
   const [panel, set_panel] = useState();
   const [zoomLevel, setZoomLevel] = useState(1);
-
   const [curr_pages, set_curr_pages] = useState();
 
   useEffect(() => {
@@ -45,7 +44,9 @@ export default function Verification({
         _id: id,
         pages: updated,
       })
-      .then(() => set_curr_pages(updated))
+      .then(() => {
+        set_curr_pages(updated);
+      })
       .catch((err) => console.error("Save failed", err));
   }
 
@@ -132,7 +133,7 @@ const sx = {
     flexDirection: "row",
     gap: 5,
     justifyContent: "center",
-    ml: 20,
+    ml: 5,
     mt: 5,
   },
   overviewStack: {
@@ -146,7 +147,7 @@ const sx = {
     justifyContent: "center",
     mt: 5,
     gap: 3,
-    ml: 20,
+    ml: 5,
   },
   boxBorder: {
     width: 700,

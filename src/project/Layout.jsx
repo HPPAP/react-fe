@@ -20,7 +20,7 @@ export default function ProjectLayout() {
   return (
     <Stack sx={sx.layoutWrapper}>
       <Navigation />
-      {JSON.stringify(project)}
+      {/* {JSON.stringify(project)} */}
       <Stack sx={sx.contentContainer}>
         {project && <Outlet context={{ project }} />}
       </Stack>
