@@ -53,7 +53,11 @@ export default function App() {
 
         <Route path="/project/:id" element={<ProjectLayout />}>
           <Route index element={<ProjectView />} />
+
           <Route path="edit" element={<ProjectEdit />} />
+
+          {/* <Route path="verify/:page_id" element={<Verify />} /> */}
+
           <Route path="settings" element={<ProjectSettings />} />
         </Route>
       </Routes>

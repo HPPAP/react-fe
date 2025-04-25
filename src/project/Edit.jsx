@@ -1,11 +1,8 @@
-// src/project/Edit.jsx
-
 import { useState, useEffect } from "react";
 import {
   Stack,
   Typography,
   Button,
-  Popover,
   Select,
   MenuItem,
   TextField,
@@ -14,19 +11,14 @@ import axios from "axios";
 import { useOutletContext, useNavigate } from "react-router-dom";
 
 export default function EditPage() {
-  const { project } = useOutletContext();
   const [pages, set_pages] = useState([]);
 
-  const sx = {
-    wrapper: { width: 1 },
-    container: { width: 1, border: 1 },
-  };
+  const sx = { wrapper: { width: 1 }, container: { width: 1, border: 1 } };
 
   return (
     <Stack sx={sx.wrapper} spacing={2}>
       <Stack sx={sx.container}>
         <Controls set_pages={set_pages} />
-
         <List pages={pages} />
       </Stack>
     </Stack>
@@ -35,20 +27,44 @@ export default function EditPage() {
 
 function List({ pages }) {
   const { project } = useOutletContext();
-  console.log(project);
+  const [curr_pages, set_curr_pages] = useState(project.pages);
+
+  function add(id) {
+    const updated = [...new Set([...curr_pages, id])];
+    axios
+      .post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
+        _id: project._id,
+        pages: updated,
+      })
+      .then(() => set_curr_pages(updated))
+      .catch((err) => console.error("Save failed", err));
+  }
+
+  function remove(id) {
+    const updated = curr_pages.filter((x) => x !== id);
+    axios
+      .post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
+        _id: project._id,
+        pages: updated,
+      })
+      .then(() => set_curr_pages(updated))
+      .catch((err) => console.error("Save failed", err));
+  }
 
   return (
     <Stack>
+      {JSON.stringify(curr_pages)}
       {pages.map((e, i) => (
         <Stack key={i} direction="row" spacing={2}>
+          <Typography>{i + 1}. </Typography>
           <Typography>{e.volume_title}</Typography>
           <Typography>{e.page_number}</Typography>
           <Typography>{e.text.slice(0, 40)}</Typography>
           {/* // _ID OR id */}
-          {project.pages.includes(e._id) ? (
-            <Typography>Del</Typography>
+          {curr_pages.includes(e._id) ? (
+            <Typography onClick={() => remove(e._id)}>Del</Typography>
           ) : (
-            <Typography>Add</Typography>
+            <Typography onClick={() => add(e._id)}>Add</Typography>
           )}
         </Stack>
       ))}
@@ -76,6 +92,7 @@ function Controls({ set_pages }) {
       .then((res) => set_pages(res.data.results.results))
       .catch((err) => console.error(err));
   }
+
   return (
     <Stack sx={sx.wrapper} direction="row" spacing={2}>
       <Select value={year} onChange={(e) => set_year(e.target.value)} autoWidth>
@@ -92,88 +109,6 @@ function Controls({ set_pages }) {
       />
 
       <Typography onClick={submit}>SUBMIT</Typography>
-    </Stack>
-  );
-}
-
-function Stage0({ setPages }) {
-  useEffect(() => {
-    axios
-      .post(`${import.meta.env.VITE_BE_URL}/api/search`, {
-        pageNumber: [],
-        volume: [],
-        topics: [],
-        keywords: ["tax"],
-        year: "1642-44",
-      })
-      .then((res) => setPages(res.data.results.results))
-      .catch((err) => console.error(err));
-  }, [setPages]);
-
-  return (
-    <Typography>
-      HARD-CODED SEARCH:
-      {`{ pageNumber: [], volume: [], topics: [], keywords: ["tax"], year: "1642-44" }`}
-    </Typography>
-  );
-}
-
-function Stage1({ pages, setPages }) {
-  const { project } = useOutletContext();
-  const sx = {
-    btn: {
-      p: 1,
-      cursor: "pointer",
-      "&:hover": { backgroundColor: "lightgrey" },
-    },
-  };
-
-  const submit = () => {
-    axios
-      .post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
-        id: project._id,
-        pages: pages.map((p) => p._id),
-      })
-      .then((res) => console.log("Saved:", res.data))
-      .catch((err) => console.error(err));
-  };
-
-  const cancel = () => setPages([]);
-
-  return (
-    <Stack spacing={2}>
-      <Stack direction="row" spacing={2}>
-        <Typography sx={sx.btn} onClick={submit}>
-          Save
-        </Typography>
-        <Typography sx={sx.btn} onClick={cancel}>
-          Cancel
-        </Typography>
-      </Stack>
-      {pages.map((p, i) => (
-        <Typography key={i}>
-          {i + 1}. {p._id}
-        </Typography>
-      ))}
-    </Stack>
-  );
-}
-
-function Stage2({ pages }) {
-  const navigate = useNavigate();
-  const pageIds = pages.map((p) => p._id);
-
-  return (
-    <Stack spacing={3} alignItems="center">
-      <Typography variant="h6">
-        You’ve selected {pages.length} page{pages.length !== 1 && "s"}.
-      </Typography>
-      <Button
-        variant="contained"
-        onClick={() => navigate("/results", { state: { pageIds } })}
-      >
-        Verify Pages
-      </Button>
     </Stack>
   );
 }

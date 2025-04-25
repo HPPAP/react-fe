@@ -1,22 +1,26 @@
 import { useState, useEffect } from "react";
 import { Stack, Typography } from "@mui/material";
 import axios from "axios";
-import { Outlet, useNavigate, useParams } from "react-router-dom";
+import { Outlet, useNavigate, useParams, useLocation } from "react-router-dom";
 
 export default function ProjectLayout() {
-  const { id } = useParams();
+  const location = useLocation();
   const [project, setProject] = useState(null);
 
+  const { id } = useParams();
   useEffect(() => {
     axios
       .post(`${import.meta.env.VITE_BE_URL}/api/project`, { id })
-      .then((res) => setProject(res.data.project))
+      .then((res) => {
+        setProject(res.data.project);
+      })
       .catch((err) => console.error(err));
-  }, [id]);
+  }, [id, location]);
 
   return (
     <Stack sx={sx.layoutWrapper}>
       <Navigation />
+      {JSON.stringify(project)}
       <Stack sx={sx.contentContainer}>
         {project && <Outlet context={{ project }} />}
       </Stack>
