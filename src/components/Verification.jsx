@@ -1,79 +1,94 @@
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { Stack, Typography, TextField, Button, Box } from "@mui/material";
-import { IconButton } from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
-import RemoveIcon from "@mui/icons-material/Remove";
 import "../App.css";
 import { Link } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import axios from "axios";
 
 export default function Verification({
   i,
   panels,
-  correct_next,
   overview,
+  correct_next,
   fail_next,
-  move_next,
   keywords = [],
 }) {
-  console.log("Verification component - keywords:", keywords); // Debug log
-  const panel = panels[i];
+  const { page_id, id } = useParams();
+  const [panel, set_panel] = useState();
   const [zoomLevel, setZoomLevel] = useState(1);
 
-  // Reset zoom when panel changes
+  const [curr_pages, set_curr_pages] = useState();
+
   useEffect(() => {
     setZoomLevel(1);
-  }, [panel.image_url]);
+
+    axios
+      .post(`${import.meta.env.VITE_BE_URL}/api/page/get`, { _id: page_id })
+      .then((response) => {
+        set_panel(response.data.page);
+      })
+      .catch((error) => console.log(error));
+  }, [panel]);
+
+  useEffect(() => {
+    axios
+      .post(`${import.meta.env.VITE_BE_URL}/api/project`, { _id: id })
+      .then((res) => {
+        set_curr_pages(res.data.project.pages);
+      });
+  }, []);
+
+  function add() {
+    const updated = [...new Set([...curr_pages, page_id])];
+    axios
+      .post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
+        _id: id,
+        pages: updated,
+      })
+      .then(() => set_curr_pages(updated))
+      .catch((err) => console.error("Save failed", err));
+  }
+
+  function remove() {
+    const updated = curr_pages.filter((x) => x !== page_id);
+    axios
+      .post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
+        _id: id,
+        pages: updated,
+      })
+      .then(() => set_curr_pages(updated))
+      .catch((err) => console.error("Save failed", err));
+  }
 
   const handleWheel = (event) => {
     if (event.ctrlKey || event.metaKey) {
-      // Support both Ctrl and Cmd keys
       event.preventDefault();
       const delta = event.deltaY > 0 ? 0.9 : 1.1;
-      setZoomLevel((prev) => {
-        const newLevel = prev * delta;
-        return Math.min(Math.max(newLevel, 0.5), 3); // Limit zoom between 50% and 300%
-      });
+      setZoomLevel((prev) => Math.min(Math.max(prev * delta, 0.5), 3));
     }
   };
 
-  // Function to highlight keywords in text
   const highlightKeywords = (text) => {
-    console.log("highlightKeywords - keywords:", keywords); // Debug log
     if (!keywords.length) return text;
-    
-    const parts = text.split(new RegExp(`(${keywords.join('|')})`, 'gi'));
-    return parts.map((part, i) => 
-      keywords.some(keyword => keyword.toLowerCase() === part.toLowerCase()) 
-        ? <mark key={i} style={{ backgroundColor: 'yellow' }}>{part}</mark>
-        : part
+    const parts = text.split(new RegExp(`(${keywords.join("|")})`, "gi"));
+    return parts.map((part, idx) =>
+      keywords.some((kw) => kw.toLowerCase() === part.toLowerCase()) ? (
+        <mark key={idx}>{part}</mark>
+      ) : (
+        part
+      )
     );
   };
 
+  if (!panel) return null;
   return (
     <>
       <Stack sx={sx.compareStack}>
-        {/* Stack 1: Searched Text */}
         <Stack sx={sx.boxBorder}>
-          <Box sx={sx.textContainer}>
-            {highlightKeywords(panel.text)}
-          </Box>
+          <Box sx={sx.textContainer}>{highlightKeywords(panel.text)}</Box>
         </Stack>
-        {/* Stack 2: PDF Image */}
         <Stack sx={sx.boxBorder}>
           <Box sx={sx.pdfBorder} onWheel={handleWheel}>
-            {/* <img
-              src={panel.image_url}
-              alt="document preview"
-              style={{
-                width: `${100 * zoomLevel}%`,
-                height: `${100 * zoomLevel}%`,
-                minWidth: "100%",
-                minHeight: "100%",
-                objectFit: "contain",
-                transition: "all 0.1s ease-out",
-              }}
-            /> */}
             <img
               src={panel.image_url}
               alt="document preview"
@@ -82,42 +97,29 @@ export default function Verification({
                 transformOrigin: "top left",
                 width: "100%",
                 height: "auto",
-                objectFit: "contain",
                 transition: "transform 0.1s ease-out",
               }}
             />
           </Box>
         </Stack>
       </Stack>
-      <Stack sx={sx.buttonsStack}>
-        <IconButton
-          onClick={correct_next} // highlight panel green and move to next page
-          sx={{ ...sx.circleButton, backgroundColor: "green" }}
-        >
-          <CheckIcon sx={sx.icon} />
-        </IconButton>
-        <IconButton
-          // sx={{ ...sx.circleButton, backgroundColor: "red" }}
-          onClick={fail_next} // Call highlight callback when red button is clicked
-          sx={{ ...sx.circleButton, backgroundColor: "red" }}
-        >
-          <CloseIcon sx={sx.icon} />
-        </IconButton>
 
-        <IconButton
-          onClick={move_next}
-          sx={{ ...sx.circleButton, backgroundColor: "yellow" }}
-        >
-          <RemoveIcon sx={sx.icon} />
-        </IconButton>
-      </Stack>
-      <Stack sx={sx.overviewStack}>
+      <Stack sx={sx.buttonsStack}>
+        <Button variant="contained" onClick={add} sx={sx.button}>
+          Save
+        </Button>
         <Button
-          onClick={overview}
-          variant="outlined"
-          component={Link}
-          to="/Results"
+          variant="contained"
+          color="secondary"
+          onClick={remove}
+          sx={sx.button}
         >
+          Delete
+        </Button>
+      </Stack>
+
+      <Stack sx={sx.overviewStack}>
+        <Button variant="outlined" component={Link} to={`/project/${id}/edit`}>
           Overview
         </Button>
       </Stack>
@@ -130,22 +132,22 @@ const sx = {
     flexDirection: "row",
     gap: 5,
     justifyContent: "center",
+    ml: 20,
+    mt: 5,
   },
-
   overviewStack: {
     flexDirection: "row",
     justifyContent: "flex-end",
     mt: -7,
     mr: 5,
   },
-
   buttonsStack: {
     flexDirection: "row",
     justifyContent: "center",
     mt: 5,
     gap: 3,
+    ml: 20,
   },
-
   boxBorder: {
     width: 700,
     height: 600,
@@ -154,42 +156,24 @@ const sx = {
     justifyContent: "center",
     alignItems: "center",
   },
-
   pdfBorder: {
     width: "100%",
     height: 600,
-    overflow: "auto", // Changed from 'auto' to 'scroll' to always show bars
+    overflow: "auto",
     cursor: "zoom-in",
-
-    // make sure this works
     display: "flex",
-    justifyContent: "flex-start", // Ensures image aligns to top-left for natural scroll
+    justifyContent: "flex-start",
     alignItems: "flex-start",
   },
-
-  circleButton: {
-    border: 1,
-    width: 100,
-    height: 100,
-    borderRadius: "50%",
-    "&:focus": {
-      outline: "none", // Removes the blue outline
-    },
-  },
-
-  image: {
-    width: 600,
-    height: 600,
-  },
-
-  icon: {
-    fontSize: 50,
-  },
-
   textContainer: {
     width: "100%",
     height: "100%",
-    overflowY: "auto", // Enables vertical scrolling
-    padding: "10px", // Adds some spacing inside the box
+    overflowY: "auto",
+    padding: "10px",
+  },
+  button: {
+    textTransform: "none",
+    px: 3,
+    py: 1,
   },
 };

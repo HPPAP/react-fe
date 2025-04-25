@@ -28,7 +28,7 @@ export default function Settings() {
   function submit() {
     axios
       .post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
-        id: project._id,
+        _id: project._id,
         title,
         description,
       })

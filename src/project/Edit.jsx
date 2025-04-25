@@ -8,7 +8,7 @@ import {
   TextField,
 } from "@mui/material";
 import axios from "axios";
-import { useOutletContext, useNavigate } from "react-router-dom";
+import { useOutletContext, useNavigate, useParams } from "react-router-dom";
 
 export default function EditPage() {
   const [pages, set_pages] = useState([]);
@@ -28,6 +28,9 @@ export default function EditPage() {
 function List({ pages }) {
   const { project } = useOutletContext();
   const [curr_pages, set_curr_pages] = useState(project.pages);
+
+  const navigate = useNavigate();
+  const { id: projectId } = useParams();
 
   function add(id) {
     const updated = [...new Set([...curr_pages, id])];
@@ -61,11 +64,18 @@ function List({ pages }) {
           <Typography>{e.page_number}</Typography>
           <Typography>{e.text.slice(0, 40)}</Typography>
           {/* // _ID OR id */}
-          {curr_pages.includes(e._id) ? (
+          {/* {curr_pages.includes(e._id) ? (
             <Typography onClick={() => remove(e._id)}>Del</Typography>
           ) : (
             <Typography onClick={() => add(e._id)}>Add</Typography>
-          )}
+          )} */}
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => navigate(`/project/${projectId}/verify/${e._id}`)}
+          >
+            Verify
+          </Button>
         </Stack>
       ))}
     </Stack>
@@ -78,6 +88,33 @@ function Controls({ set_pages }) {
 
   const sx = {
     wrapper: { border: 1 },
+    button: {
+      textTransform: "none",
+      height: 40,
+    },
+    input: {
+      backgroundColor: "white",
+      borderRadius: 1,
+      width: 250,
+      "& .MuiOutlinedInput-root": {
+        "& fieldset": { borderColor: "#ccc" },
+        "&:hover fieldset": { borderColor: "#888" },
+        "&.Mui-focused fieldset": { borderColor: "#45b6fe" },
+      },
+    },
+    select: {
+      height: 40,
+      backgroundColor: "white",
+      "& .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#ccc",
+      },
+      "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#888",
+      },
+      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+        borderColor: "#45b6fe",
+      },
+    },
   };
 
   function submit() {
@@ -94,8 +131,13 @@ function Controls({ set_pages }) {
   }
 
   return (
-    <Stack sx={sx.wrapper} direction="row" spacing={2}>
-      <Select value={year} onChange={(e) => set_year(e.target.value)} autoWidth>
+    <Stack sx={sx.wrapper} direction="row" spacing={2} alignItems="center">
+      <Select
+        value={year}
+        onChange={(e) => set_year(e.target.value)}
+        autoWidth
+        sx={sx.select}
+      >
         {YEARS.map((e, i) => (
           <MenuItem key={i} value={e}>
             {e}
@@ -106,9 +148,16 @@ function Controls({ set_pages }) {
       <TextField
         value={keywords}
         onChange={(e) => set_keywords(e.target.value)}
+        placeholder="Enter keywords (comma-separated)"
+        variant="outlined"
+        size="small"
+        sx={sx.input}
       />
 
-      <Typography onClick={submit}>SUBMIT</Typography>
+      {/* <Typography onClick={submit}>SUBMIT</Typography> */}
+      <Button variant="contained" sx={sx.button} onClick={submit}>
+        SEARCH
+      </Button>
     </Stack>
   );
 }

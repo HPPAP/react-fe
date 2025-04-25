@@ -15,8 +15,6 @@ export default function Projects() {
       .catch((error) => console.log(error));
   }, []);
 
-  // const addNewProject = () => navigate("/Search");
-
   const addNewProject = async () => {
     try {
       const { data } = await axios.post(

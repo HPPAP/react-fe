@@ -10,8 +10,12 @@ function Results() {
   const location = useLocation();
 
   // Get pageIds, projectId, and keywords from location state
-  const { pageIds = [], projectId, keywords: initialKeywords = [] } = location.state || {};
-  
+  const {
+    pageIds = [],
+    projectId,
+    keywords: initialKeywords = [],
+  } = location.state || {};
+
   // Store keywords in state to preserve them
   const [keywords, setKeywords] = useState(initialKeywords);
   const [panels, setPanels] = useState([]);
@@ -111,7 +115,7 @@ function Results() {
       const response = await axios.post(
         `${import.meta.env.VITE_BE_URL}/api/project/update`,
         {
-          project_id: projectId, // Match backend expectation
+          _id: projectId, // Match backend expectation
           pages: pageIdsToSave,
         }
       );

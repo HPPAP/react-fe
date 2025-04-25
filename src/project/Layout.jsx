@@ -10,7 +10,7 @@ export default function ProjectLayout() {
   const { id } = useParams();
   useEffect(() => {
     axios
-      .post(`${import.meta.env.VITE_BE_URL}/api/project`, { id })
+      .post(`${import.meta.env.VITE_BE_URL}/api/project`, { _id: id })
       .then((res) => {
         setProject(res.data.project);
       })

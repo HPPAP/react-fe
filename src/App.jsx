@@ -9,6 +9,7 @@ import ApiTest from "./ApiTest";
 import Search from "./components/Search";
 import Results from "./components/Results";
 import Projects from "./components/Projects";
+import Verification from "./components/Verification.jsx";
 
 import ProjectLayout from "./project/Layout.jsx";
 import ProjectView from "./project/View.jsx";
@@ -33,6 +34,15 @@ function HomePage() {
         Projects
       </Button>
 
+      <Button
+        component={RouterLink}
+        to="/results"
+        variant="outlined"
+        sx={sx.navButton}
+      >
+        reuslts
+      </Button>
+
       <Box sx={{ mt: 4 }}>
         <ApiTest />
       </Box>
@@ -48,15 +58,17 @@ export default function App() {
         <Route path="/results" element={<Results />} />
         <Route path="/projects" element={<Projects />} />
 
+        {/* added verification */}
+        <Route path="/results" element={<Results />} />
+
         <Route path="/search" element={<Search />} />
         <Route path="project/:id/search" element={<Search />} />
 
+        <Route path="/project/:id/verify/:page_id" element={<Verification />} />
         <Route path="/project/:id" element={<ProjectLayout />}>
           <Route index element={<ProjectView />} />
 
           <Route path="edit" element={<ProjectEdit />} />
-
-          {/* <Route path="verify/:page_id" element={<Verify />} /> */}
 
           <Route path="settings" element={<ProjectSettings />} />
         </Route>
