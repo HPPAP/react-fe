@@ -46,7 +46,7 @@ export default function Settings() {
   function handleDelete() {
     axios
       .post(`${import.meta.env.VITE_BE_URL}/api/project/delete`, {
-        id: project._id,
+        _id: project._id,
       })
       .then(() => {
         navigate("/projects", { replace: true });

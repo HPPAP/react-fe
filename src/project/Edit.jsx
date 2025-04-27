@@ -58,19 +58,50 @@ function List({ pages }) {
     <Stack>
       {/* {JSON.stringify(curr_pages)} */}
       {pages.map((e, i) => (
-        <Stack key={i} direction="row" spacing={2}>
-          <Typography>{i + 1}. </Typography>
-          <Typography>{e.volume_title}</Typography>
-          <Typography>{e.page_number}</Typography>
-          <Typography>{e.text.slice(0, 40)}</Typography>
+        <Stack
+          key={i}
+          direction="row"
+          spacing={2}
+          justifyContent={"space-between"}
+        >
+          <Typography sx={{ width: 50 }}>{i + 1}. </Typography>
+          <Typography sx={{ width: 100 }}>{e.volume_title}</Typography>
+          <Typography sx={{ width: 20 }}>{e.page_number}</Typography>
+          <Typography sx={{ width: 700 }}>{e.text.slice(0, 40)}</Typography>
           {/* // _ID OR id */}
-          {/* {curr_pages.includes(e._id) ? (
-            <Typography onClick={() => remove(e._id)}>Del</Typography>
+          {curr_pages.includes(e._id) ? (
+            <Typography
+              sx={{
+                border: "1px solid",
+                borderColor: "success.main",
+                bgcolor: "success.light",
+                borderRadius: 1,
+                px: 1,
+                py: 0.5,
+                display: "inline-block",
+                width: 60,
+              }}
+            >
+              ADDED
+            </Typography>
           ) : (
-            <Typography onClick={() => add(e._id)}>Add</Typography>
-          )} */}
+            <Typography
+              sx={{
+                border: "1px solid",
+                borderColor: "error.main",
+                bgcolor: "error.light",
+                borderRadius: 1,
+                px: 1,
+                py: 0.5,
+                display: "inline-block",
+                width: 60,
+              }}
+            >
+              NOT IN
+            </Typography>
+          )}
           <Button
-            variant="outlined"
+            variant="contained"
             size="small"
             onClick={() => navigate(`/project/${projectId}/verify/${e._id}`)}
           >
