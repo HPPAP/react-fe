@@ -8,24 +8,36 @@ import {
   TextField,
 } from "@mui/material";
 import axios from "axios";
-import { useOutletContext, useNavigate, useParams } from "react-router-dom";
+import {
+  useOutletContext,
+  useNavigate,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 
 export default function EditPage() {
   const [pages, set_pages] = useState([]);
+  const itemsString = searchParams.get("keywords");
+  const [keywords, set_keywords] = useState(itemsString);
+  const [searchParams] = useSearchParams();
 
   const sx = { wrapper: { width: 1 }, container: { width: 1, border: 1 } };
 
   return (
     <Stack sx={sx.wrapper} spacing={2}>
       <Stack sx={sx.container}>
-        <Controls set_pages={set_pages} />
-        <List pages={pages} />
+        <Controls
+          set_pages={set_pages}
+          keywords={keywords}
+          set_keywords={set_keywords}
+        />
+        <List pages={pages} keywords={keywords} />
       </Stack>
     </Stack>
   );
 }
 
-function List({ pages }) {
+function List({ pages, keywords }) {
   const { project } = useOutletContext();
   const [curr_pages, set_curr_pages] = useState(project.pages);
 
@@ -72,7 +84,14 @@ function List({ pages }) {
           <Button
             variant="outlined"
             size="small"
-            onClick={() => navigate(`/project/${projectId}/verify/${e._id}`)}
+            onClick={() => {
+              navigate(
+                `/project/${projectId}/verify/${e._id}?keywords=${keywords
+                  .split(",")
+                  .map((x) => x.trim())
+                  .join(",")}`
+              );
+            }}
           >
             Verify
           </Button>
@@ -82,9 +101,8 @@ function List({ pages }) {
   );
 }
 
-function Controls({ set_pages }) {
+function Controls({ set_pages, keywords, set_keywords }) {
   const [year, set_year] = useState(YEARS[0]);
-  const [keywords, set_keywords] = useState("");
 
   const sx = {
     wrapper: { border: 1 },
@@ -129,6 +147,10 @@ function Controls({ set_pages }) {
       .then((res) => set_pages(res.data.results.results))
       .catch((err) => console.error(err));
   }
+
+  useEffect(() => {
+    submit();
+  }, []);
 
   return (
     <Stack sx={sx.wrapper} direction="row" spacing={2} alignItems="center">
