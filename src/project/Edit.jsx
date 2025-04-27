@@ -17,9 +17,9 @@ import {
 
 export default function EditPage() {
   const [pages, set_pages] = useState([]);
-  const itemsString = searchParams.get("keywords");
-  const [keywords, set_keywords] = useState(itemsString);
   const [searchParams] = useSearchParams();
+  const itemsString = searchParams.get("keywords");
+  const [keywords, set_keywords] = useState(itemsString || "");
 
   const sx = { wrapper: { width: 1 }, container: { width: 1, border: 1 } };
 
@@ -116,6 +116,11 @@ function List({ pages, keywords }) {
             variant="contained"
             size="small"
             onClick={() => {
+              // Store all pages in sessionStorage before navigating
+              // This makes the data available across routes
+              sessionStorage.setItem('allPages', JSON.stringify(pages));
+              sessionStorage.setItem('currentPageIndex', i.toString());
+              
               navigate(
                 `/project/${projectId}/verify/${e._id}?keywords=${keywords
                   .split(",")
@@ -178,10 +183,6 @@ function Controls({ set_pages, keywords, set_keywords }) {
       .then((res) => set_pages(res.data.results.results))
       .catch((err) => console.error(err));
   }
-
-  useEffect(() => {
-    submit();
-  }, []);
 
   return (
     <Stack sx={sx.wrapper} direction="row" spacing={2} alignItems="center">

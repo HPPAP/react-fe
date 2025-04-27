@@ -136,6 +136,7 @@ function Search() {
     setIsLoading(true);
     setError(null);
     try {
+      console.log("Keywords: ", fields.keywords.tags);
       const response = await axios.post(
         `${import.meta.env.VITE_BE_URL}/api/search`,
         {
