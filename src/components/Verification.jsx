@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Stack, Typography, TextField, Button, Box } from "@mui/material";
 import "../App.css";
 import { Link } from "react-router-dom";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 
 export default function Verification({
@@ -13,6 +13,10 @@ export default function Verification({
   fail_next,
   keywords = [],
 }) {
+  const [searchParams] = useSearchParams();
+  const itemsString = searchParams.get("keywords");
+  const itemsArray = itemsString ? itemsString.split(",") : [];
+
   const { page_id, id } = useParams();
   const [panel, set_panel] = useState();
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -26,13 +30,14 @@ export default function Verification({
       .then((response) => {
         set_panel(response.data.page);
       })
-      .catch((error) => console.log(error));
-  }, [panel]);
+      .catch((error) => console.log("THIS", error));
+  }, []);
 
   useEffect(() => {
     axios
       .post(`${import.meta.env.VITE_BE_URL}/api/project`, { _id: id })
       .then((res) => {
+        console.log(res.data);
         set_curr_pages(res.data.project.pages);
       });
   }, []);
