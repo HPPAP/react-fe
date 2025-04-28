@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Stack, Typography } from "@mui/material";
+import { Stack, Typography, Box, Button, IconButton, Container } from "@mui/material";
+import HomeIcon from '@mui/icons-material/Home';
 import axios from "axios";
 import { Outlet, useNavigate, useParams, useLocation } from "react-router-dom";
 
@@ -17,46 +18,77 @@ export default function ProjectLayout() {
       .catch((err) => console.error(err));
   }, [id, location]);
 
+  const navigate = useNavigate();
+
   return (
-    <Stack sx={sx.layoutWrapper}>
-      <Navigation />
-      {/* {JSON.stringify(project)} */}
-      <Stack sx={sx.contentContainer}>
-        {project && <Outlet context={{ project }} />}
+    <Container maxWidth="lg">
+      <Stack sx={sx.layoutWrapper}>
+        <Box sx={sx.headerContainer}>
+          <IconButton 
+            sx={sx.homeButton} 
+            onClick={() => navigate("/projects")}
+            aria-label="home"
+          >
+            <HomeIcon sx={{ color: 'white' }} />
+          </IconButton>
+          
+          {project && (
+            <Box sx={sx.titleContainer}>
+              <Typography variant="h5" align="center" sx={sx.projectTitle}>
+                {project.title}
+              </Typography>
+              <Typography variant="body2" align="center" sx={sx.projectDescription}>
+                {project.description}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+        
+        <Navigation currentPath={location.pathname} />
+        
+        <Stack sx={sx.contentContainer}>
+          {project && <Outlet context={{ project }} />}
+        </Stack>
       </Stack>
-    </Stack>
+    </Container>
   );
 }
 
-function Navigation() {
+function Navigation({ currentPath }) {
   const navigate = useNavigate();
+  const { id } = useParams();
+  
+  // Extract the last part of the path to determine active button
+  const activePath = currentPath.split('/').pop();
 
   return (
     <Stack direction="row" sx={sx.navWrapper}>
       <Typography
         variant="button"
-        sx={sx.navButton}
-        onClick={() => navigate("/projects")}
-      >
-        Home
-      </Typography>
-      <Typography
-        variant="button"
-        sx={sx.navButton}
+        sx={{
+          ...sx.navButton,
+          ...(activePath === id || activePath === '' ? sx.activeNavButton : {})
+        }}
         onClick={() => navigate("")}
       >
         View
       </Typography>
       <Typography
         variant="button"
-        sx={sx.navButton}
+        sx={{
+          ...sx.navButton,
+          ...(activePath === 'edit' ? sx.activeNavButton : {})
+        }}
         onClick={() => navigate("edit")}
       >
         Edit
       </Typography>
       <Typography
         variant="button"
-        sx={sx.navButton}
+        sx={{
+          ...sx.navButton,
+          ...(activePath === 'settings' ? sx.activeNavButton : {})
+        }}
         onClick={() => navigate("settings")}
       >
         Settings
@@ -68,35 +100,71 @@ function Navigation() {
 const sx = {
   layoutWrapper: {
     width: "100%",
-    maxWidth: 1200,
-    mx: "auto",
     my: 4,
-    px: 2,
-    border: 1,
+  },
+  headerContainer: {
+    position: 'relative',
+    width: '100%',
+    mb: 2,
+    pl: 3,
+  },
+  homeButton: {
+    position: 'absolute',
+    top: 0,
+    left: 3,
+    zIndex: 10,
+  },
+  titleContainer: {
+    textAlign: 'center',
+    mb: 2,
+    pt: 2,
+  },
+  projectTitle: {
+    fontWeight: 'medium',
+    mb: 0.5,
+    color: 'white',
+  },
+  projectDescription: {
+    color: 'white',
+    mb: 2,
+    maxWidth: '80%',
+    mx: 'auto',
+    opacity: 0.85,
   },
   contentContainer: {
     width: "100%",
-    border: 1,
   },
   navWrapper: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between", // spread buttons evenly
-    border: "1px solid white", // white outline
+    justifyContent: "flex-start",
+    border: "1px solid white",
     borderRadius: 2,
-    p: 2,
+    p: 1, 
     mb: 3,
-    backgroundColor: "transparent", // remove white fill
+    backgroundColor: "transparent",
+    width: "auto",
+    alignSelf: "flex-start",
+    ml: 3,
   },
   navButton: {
     color: "white",
     px: 2,
-    py: 1,
+    py: 0.5,
+    mx: 0.5,
     borderRadius: 1,
     cursor: "pointer",
     fontWeight: 500,
+    textAlign: "center",
     "&:hover": {
-      backgroundColor: "rgba(255,255,255,0.1)", // subtle white hover
+      backgroundColor: "rgba(255,255,255,0.1)",
+    },
+  },
+  activeNavButton: {
+    backgroundColor: "rgba(66, 133, 244, 0.8)",
+    fontWeight: 700,
+    "&:hover": {
+      backgroundColor: "rgba(66, 133, 244, 0.8)",
     },
   },
 };

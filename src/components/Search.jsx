@@ -136,7 +136,6 @@ function Search() {
     setIsLoading(true);
     setError(null);
     try {
-      console.log("Keywords: ", fields.keywords.tags);
       const response = await axios.post(
         `${import.meta.env.VITE_BE_URL}/api/search`,
         {
@@ -232,7 +231,6 @@ function Search() {
                 >
                   <div className="dropdown-column" style={{ flex: 1 }}>
                     <h4 style={{ margin: 0, padding: "0 0 4px 0" }}>Ranges</h4>
-                    {console.log(JSON.stringify(filteredYears))}
                     {filteredYears.ranges.length > 0 ? (
                       filteredYears.ranges.map((range) => (
                         <div
