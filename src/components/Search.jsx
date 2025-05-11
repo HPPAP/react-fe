@@ -148,6 +148,13 @@ function Search() {
       );
 
       if (response.data && response.data.results) {
+        // Store the keywords for highlighting in results
+        if (fields.keywords.tags.length > 0) {
+          localStorage.setItem('search_keywords', fields.keywords.tags.join(','));
+        } else {
+          localStorage.removeItem('search_keywords');
+        }
+        
         navigate("/results", {
           state: {
             pageIds: response.data.results.results.map((r) => r._id),

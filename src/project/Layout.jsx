@@ -81,7 +81,7 @@ function Navigation({ currentPath }) {
         }}
         onClick={() => navigate("edit")}
       >
-        Edit
+        Search
       </Typography>
       <Typography
         variant="button"

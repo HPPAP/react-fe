@@ -225,10 +225,34 @@ function List({ pages, keywords, setNotification }) {
     event.stopPropagation();
     
     const updated = [...new Set([...curr_pages, id])];
+    
+    // Get current keywords to store with this page
+    const currentKeywords = keywords;
+    
+    // Get the existing page_keywords or initialize empty object
     axios
-      .post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
-        _id: project._id,
-        pages: updated,
+      .post(`${import.meta.env.VITE_BE_URL}/api/project`, { _id: project._id })
+      .then((projectRes) => {
+        const existingProject = projectRes.data.project;
+        const pageKeywords = existingProject.page_keywords || {};
+        
+        // Only update keywords if we have some to add
+        if (currentKeywords) {
+          // Format keywords properly
+          const keywordArray = Array.isArray(currentKeywords) 
+            ? currentKeywords 
+            : currentKeywords.split(',').map(k => k.trim()).filter(k => k);
+            
+          // Store as string
+          pageKeywords[id] = keywordArray.join(',');
+        }
+        
+        // Now update the project with both pages and keywords
+        return axios.post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
+          _id: project._id,
+          pages: updated,
+          page_keywords: pageKeywords
+        });
       })
       .then(() => {
         set_curr_pages(updated);
@@ -264,14 +288,28 @@ function List({ pages, keywords, setNotification }) {
   function confirmRemove() {
     const { pageId, pageTitle } = confirmDialog;
     
-    const updated = curr_pages.filter((x) => x !== pageId);
+    // Get the existing page_keywords
     axios
-      .post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
-        _id: project._id,
-        pages: updated,
+      .post(`${import.meta.env.VITE_BE_URL}/api/project`, { _id: project._id })
+      .then((projectRes) => {
+        const existingProject = projectRes.data.project;
+        const pageKeywords = existingProject.page_keywords || {};
+        const updated = curr_pages.filter((x) => x !== pageId);
+        
+        // Remove keywords for this page
+        if (pageKeywords[pageId]) {
+          delete pageKeywords[pageId];
+        }
+        
+        // Now update the project with both pages and keywords
+        return axios.post(`${import.meta.env.VITE_BE_URL}/api/project/update`, {
+          _id: project._id,
+          pages: updated,
+          page_keywords: pageKeywords
+        });
       })
       .then(() => {
-        set_curr_pages(updated);
+        set_curr_pages(curr_pages.filter((x) => x !== pageId));
         // Show notification
         setNotification({
           open: true,
@@ -301,6 +339,12 @@ function List({ pages, keywords, setNotification }) {
   const getFormattedKeywords = () => {
     if (!keywords) return "";
     
+    // If keywords is already an array, join it
+    if (Array.isArray(keywords)) {
+      return keywords.join(",");
+    }
+    
+    // If it's a string, split by comma, clean, and rejoin
     const keywordArray = keywords
       .split(",")
       .map(k => k.trim())
@@ -316,7 +360,7 @@ function List({ pages, keywords, setNotification }) {
     
     // Format keywords properly for URL parameters
     const formattedKeywords = getFormattedKeywords();
-    const keywordParam = formattedKeywords ? `?keywords=${formattedKeywords}` : '';
+    const keywordParam = formattedKeywords ? `?keywords=${encodeURIComponent(formattedKeywords)}` : '';
     
     navigate(`/project/${projectId}/verify/${pageId}${keywordParam}`);
   };
