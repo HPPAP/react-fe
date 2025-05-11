@@ -354,8 +354,9 @@ function List({ pages, keywords, setNotification }) {
   };
   
   const navigateToVerify = (pageId, index) => {
-    // Store all pages in sessionStorage before navigating
-    sessionStorage.setItem('allPages', JSON.stringify(pages));
+    // Store only page IDs in sessionStorage before navigating
+    const pageIds = pages.map(page => page._id);
+    sessionStorage.setItem('pageIds', JSON.stringify(pageIds));
     sessionStorage.setItem('currentPageIndex', index.toString());
     
     // Format keywords properly for URL parameters

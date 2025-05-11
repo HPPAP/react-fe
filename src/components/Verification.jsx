@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Stack, Typography, TextField, Button, Box, IconButton, Drawer, Paper, Tabs, Tab, Divider, FormControlLabel, Switch, Chip, InputAdornment, Card, CardContent, Accordion, AccordionSummary, AccordionDetails, MenuItem, Menu } from "@mui/material";
 import "../App.css";
 import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
@@ -9,7 +9,24 @@ import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import Notes from "./Notes";
+
+// Define color palette for different projects' passages
+const PROJECT_COLORS = [
+  '#ffb347', // Current project - orange
+  '#a8e6cf80', // Light green with transparency
+  '#54c8e880', // Light blue with transparency
+  '#cc99ff80', // Purple with transparency
+  '#ff6b6b60', // Red with lower transparency
+  '#4d96ff60', // Blue with lower transparency
+  '#7ec85060', // Light green with lower transparency
+  '#ff9cee60', // Pink with lower transparency
+  '#d0b49f60', // Tan with lower transparency
+  '#ffdb5860'  // Yellow with lower transparency
+];
 
 export default function Verification({
   i,
@@ -51,6 +68,15 @@ export default function Verification({
     
     // Otherwise try to get from sessionStorage
     try {
+      // First check for pageIds (new approach with just IDs)
+      const pageIdsFromStorage = sessionStorage.getItem('pageIds');
+      if (pageIdsFromStorage) {
+        const pageIds = JSON.parse(pageIdsFromStorage);
+        // Return array of objects with just _id property
+        return pageIds.map(id => ({ _id: id }));
+      }
+      
+      // Fall back to old approach with full page data
       const pagesFromStorage = sessionStorage.getItem('allPages');
       return pagesFromStorage ? JSON.parse(pagesFromStorage) : [];
     } catch (e) {
@@ -134,7 +160,9 @@ export default function Verification({
       setPassages([]);
       setPassageNotes({});
       setPageNote("");
-      setNotesOpen(false); // Close the notes panel
+      
+      // Do not automatically close the notes panel when switching pages
+      // This provides a more consistent UI experience
       
       // Set the zoom level back to default
       setZoomLevel(1);
@@ -153,6 +181,25 @@ export default function Verification({
             if (year) {
               setUniversalDate(`${year}-01-01`);
             }
+          }
+
+          // DEBUG: Check for text content and formatting
+          if (pageData && pageData.text) {
+            // Log the first 100 characters to check content
+            console.log("DEBUG - Page text preview:", 
+              JSON.stringify(pageData.text.substring(0, 100)));
+            
+            // Check for significant whitespace or newlines that might affect matching
+            const whitespaceCount = (pageData.text.match(/\s/g) || []).length;
+            const newlineCount = (pageData.text.match(/\n/g) || []).length;
+            const percentWhitespace = Math.round((whitespaceCount / pageData.text.length) * 100);
+            
+            console.log("DEBUG - Text stats:", {
+              length: pageData.text.length,
+              whitespaceCount,
+              newlineCount,
+              percentWhitespace: `${percentWhitespace}%`
+            });
           }
           
           // Load saved metadata for this page
@@ -193,7 +240,23 @@ export default function Verification({
         
         // Load passages if available
         if (metadata.passages && Array.isArray(metadata.passages)) {
-          setPassages(metadata.passages);
+          console.log("DEBUG - Loading passages:", metadata.passages.length);
+          console.log("DEBUG - Raw passages data:", JSON.stringify(metadata.passages));
+          
+          // Ensure each passage has the required fields
+          const validPassages = metadata.passages.filter(p => p && p.text);
+          
+          // Check if we have valid passages
+          if (validPassages.length > 0) {
+            console.log("DEBUG - Setting valid passages:", JSON.stringify(validPassages));
+            setPassages(validPassages);
+          } else {
+            console.log("DEBUG - No valid passages found");
+            setPassages([]);
+          }
+        } else {
+          console.log("DEBUG - No passages found in metadata");
+          setPassages([]);
         }
         
         // Load page notes if available
@@ -205,6 +268,12 @@ export default function Verification({
         if (metadata.passage_notes) {
           setPassageNotes(metadata.passage_notes);
         }
+      } else {
+        // Reset if no metadata found
+        console.log("DEBUG - No metadata found, resetting passages");
+        setPassages([]);
+        setPageNote("");
+        setPassageNotes({});
       }
     } catch (error) {
       console.error("Error loading page metadata:", error);
@@ -330,13 +399,84 @@ export default function Verification({
     }
   };
 
+  // State for cross-project passages
+  const [otherProjectPassages, setOtherProjectPassages] = useState([]);
+  const [projectsWithPassages, setProjectsWithPassages] = useState([]);
+  const [selectedHighlightProjects, setSelectedHighlightProjects] = useState("current"); // "current", "all", or specific project ID
+
+  // Function to load passages from other projects for this page
+  const loadOtherProjectPassages = async (pageId) => {
+    if (!pageId || !projectId) return;
+    
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_BE_URL}/api/page/passages/all-projects`, {
+        page_id: pageId,
+        current_project_id: projectId
+      });
+      
+      if (response.data.success && response.data.projects) {
+        console.log("Other projects with passages:", response.data.projects);
+        
+        const projects = response.data.projects;
+        setProjectsWithPassages(projects);
+        
+        // Flatten all passages with project info
+        const allPassages = [];
+        projects.forEach((project, index) => {
+          const colorIndex = (index % (PROJECT_COLORS.length - 1)) + 1; // Skip first color (reserved for current project)
+          const projectColor = PROJECT_COLORS[colorIndex];
+          
+          if (project.passages && project.passages.length > 0) {
+            const projectPassages = project.passages.map(passage => ({
+              ...passage,
+              projectId: project.project_id,
+              projectTitle: project.project_title,
+              color: projectColor
+            }));
+            
+            allPassages.push(...projectPassages);
+          }
+        });
+        
+        setOtherProjectPassages(allPassages);
+      }
+    } catch (error) {
+      console.error("Error loading other project passages:", error);
+    }
+  };
+
+  // Update effect to load passages when page changes
+  useEffect(() => {
+    if (page_id) {
+      loadOtherProjectPassages(page_id);
+    }
+  }, [page_id, projectId]);
+
   const highlightKeywords = (text) => {
     if (!text) return "";
     
     // Combine keywords from props and URL params
     const allKeywords = [...(keywords || []), ...keywordsArray];
     
-    if (!allKeywords.length && !passages.length) return text;
+    // Determine which passages to highlight based on selectedHighlightProjects
+    let passagesToHighlight = [...passages]; // Always include current project passages
+    
+    // Add passages from other projects if "all" is selected
+    if (selectedHighlightProjects === "all") {
+      passagesToHighlight = [...passages, ...otherProjectPassages];
+    }
+    
+    if (!allKeywords.length && !passagesToHighlight.length) return text;
+
+    console.log("DEBUG - highlightKeywords called with:", {
+      textLength: text?.length || 0,
+      keywordsCount: allKeywords?.length || 0,
+      passagesCount: passagesToHighlight?.length || 0
+    });
+    
+    if (passagesToHighlight.length > 0) {
+      console.log("DEBUG - Passages to highlight:", JSON.stringify(passagesToHighlight));
+    }
     
     // Create a copy of the text that we'll transform with highlighted spans
     let result = [];
@@ -344,24 +484,117 @@ export default function Verification({
     // Start by finding all passage positions in the text
     const positions = [];
     
+    // Normalize text functions - used to handle potential whitespace differences
+    const normalizeText = (str) => {
+      if (!str) return "";
+      // Replace multiple whitespace with single space and trim
+      return str.replace(/\s+/g, ' ').trim();
+    };
+    
+    // Helper function to try different matching approaches
+    const findTextPosition = (needle, haystack) => {
+      if (!needle || !haystack) return -1;
+      
+      // Try exact match first
+      let start = haystack.indexOf(needle);
+      if (start >= 0) return start;
+      
+      // Normalize and try again
+      const normalizedNeedle = normalizeText(needle);
+      const normalizedHaystack = normalizeText(haystack);
+      start = normalizedHaystack.indexOf(normalizedNeedle);
+      
+      // If normalized match found, map back to original text position
+      if (start >= 0) {
+        console.log(`DEBUG - Found normalized match for "${normalizedNeedle}" at position ${start} in normalized text`);
+        
+        // Find the actual start position in the original text
+        let charCount = 0;
+        let originalIndex = 0;
+        
+        // Scan through the original text counting normalized characters 
+        // until we reach our target position
+        while (charCount < start && originalIndex < haystack.length) {
+          // Skip multiple whitespace in original text when counting normalized chars
+          if (haystack[originalIndex].match(/\s/) && 
+              originalIndex + 1 < haystack.length && 
+              haystack[originalIndex + 1].match(/\s/)) {
+            originalIndex++;
+            continue;
+          }
+          
+          charCount++;
+          originalIndex++;
+        }
+        
+        console.log(`DEBUG - Mapped normalized position ${start} to original position ${originalIndex}`);
+        return originalIndex;
+      }
+      
+      return -1;
+    };
+    
     // Add passages to positions
-    if (passages.length > 0) {
-      passages.forEach(passage => {
-        const start = text.indexOf(passage.text);
+    if (passagesToHighlight.length > 0) {
+      passagesToHighlight.forEach(passage => {
+        if (!passage.text) {
+          console.log("DEBUG - Skipping passage with no text:", passage);
+          return;
+        }
+        
+        const start = findTextPosition(passage.text, text);
         if (start >= 0) {
+          console.log(`DEBUG - Found passage "${passage.text}" at position ${start}`);
           positions.push({
             start,
             end: start + passage.text.length,
             content: passage.text,
-            type: 'passage'
+            type: 'passage',
+            id: passage.id,
+            projectId: passage.projectId || 'current',
+            color: passage.color || PROJECT_COLORS[0] // Use first color for current project
           });
+        } else {
+          console.log(`DEBUG - Could not find passage text in document: "${passage.text}"`);
+          // Try finding a substring match for longer passages
+          if (passage.text.length > 20) {
+            const subtext = passage.text.substring(0, 20);
+            const subStart = findTextPosition(subtext, text);
+            if (subStart >= 0) {
+              console.log(`DEBUG - Found partial match for "${subtext}" at position ${subStart}`);
+              
+              // Find a reasonable end point that doesn't go past text boundaries
+              const potentialEnd = Math.min(
+                subStart + passage.text.length,
+                text.length
+              );
+              
+              // Create a match with the found text
+              const foundText = text.substring(subStart, potentialEnd);
+              console.log(`DEBUG - Using approx match: "${foundText.substring(0, 30)}..."`);
+              
+              positions.push({
+                start: subStart,
+                end: potentialEnd,
+                content: foundText,
+                type: 'passage',
+                id: passage.id,
+                projectId: passage.projectId || 'current',
+                color: passage.color || PROJECT_COLORS[0]
+              });
+            }
+          }
         }
       });
+    } else {
+      console.log("DEBUG - No passages to highlight");
     }
     
     // Add keywords to positions
     if (allKeywords.length > 0) {
       allKeywords.forEach(keyword => {
+        if (!keyword) return;
+        
         let start = text.toLowerCase().indexOf(keyword.toLowerCase());
         while (start >= 0) {
           // Get the actual text with original casing
@@ -379,6 +612,8 @@ export default function Verification({
         }
       });
     }
+    
+    console.log(`DEBUG - Total positions to highlight: ${positions.length}`);
     
     // Sort positions by start index
     positions.sort((a, b) => a.start - b.start);
@@ -403,11 +638,20 @@ export default function Verification({
         else if (pos.end > lastPos.end) {
           lastPos.end = pos.end;
           lastPos.content = text.substring(lastPos.start, lastPos.end);
+          // Preserve the passage ID if available
+          if (pos.type === 'passage' && pos.id) {
+            lastPos.id = pos.id;
+            lastPos.type = 'passage';
+            lastPos.projectId = pos.projectId;
+            lastPos.color = pos.color;
+          }
         }
       } else {
         mergedPositions.push(pos);
       }
     }
+    
+    console.log(`DEBUG - Merged positions: ${mergedPositions.length}`);
     
     // Build the result with highlights
     let lastIndex = 0;
@@ -420,20 +664,39 @@ export default function Verification({
       
       // Add the highlighted text with class names
       if (pos.type === 'passage') {
+        console.log(`DEBUG - Adding passage highlight for "${pos.content.substring(0, 30)}..."`);
+        
+        // Determine if this is from current project or another project
+        const isCurrentProject = !pos.projectId || pos.projectId === 'current';
+        
+        // Create style object with different styling for current vs other projects
+        const highlightStyle = {
+          backgroundColor: pos.color || '#a8e6cf', 
+          padding: '0 2px', 
+          margin: '0 1px',
+          display: 'inline',
+          boxShadow: `0 0 0 1px ${pos.color || '#a8e6cf'}`,
+          borderRadius: '2px',
+          color: '#32302d',
+          fontFamily: 'inherit'
+        };
+        
+        // Apply more subtle styling for other projects' passages
+        if (!isCurrentProject) {
+          highlightStyle.boxShadow = `0 0 0 1px ${pos.color || '#a8e6cf80'}`;
+          highlightStyle.borderStyle = 'dashed';
+          highlightStyle.borderWidth = '1px';
+          highlightStyle.borderColor = pos.color.replace('80', '');
+          highlightStyle.backgroundColor = pos.color;
+        }
+        
         result.push(
           <span 
-            key={`passage-${pos.start}`} 
-            className="passage-highlight"
-            style={{ 
-              backgroundColor: '#a8e6cf', 
-              padding: '0 2px', 
-              margin: '0 1px',
-              display: 'inline',
-              boxShadow: '0 0 0 2px #a8e6cf',
-              borderRadius: '2px',
-              color: '#32302d',
-              fontFamily: 'inherit'
-            }}
+            key={`passage-${pos.start}-${pos.id || ''}`} 
+            className={isCurrentProject ? "passage-highlight" : "passage-highlight-other"}
+            style={highlightStyle}
+            data-passage-id={pos.id || ''}
+            data-project-id={pos.projectId || 'current'}
           >
             {pos.content}
           </span>
@@ -448,7 +711,7 @@ export default function Verification({
               padding: '0 2px',
               margin: '0 1px',
               display: 'inline',
-              boxShadow: '0 0 0 2px #ffff00',
+              boxShadow: '0 0 0 1px #ffff00',
               borderRadius: '2px',
               color: '#32302d',
               fontFamily: 'inherit'
@@ -467,6 +730,7 @@ export default function Verification({
       result.push(text.substring(lastIndex));
     }
     
+    console.log(`DEBUG - Generated ${result.length} output elements`);
     return result;
   };
 
@@ -544,7 +808,12 @@ export default function Verification({
       }));
       
       // Add the new passage to the existing passages
-      setPassages(prevPassages => [...prevPassages, newPassage]);
+      console.log("DEBUG - Creating new passage:", newPassage);
+      setPassages(prevPassages => {
+        const updatedPassages = [...prevPassages, newPassage];
+        console.log("DEBUG - Updated passages:", updatedPassages);
+        return updatedPassages;
+      });
       
       // Show note panel after adding passage
       setNotesOpen(true);
@@ -653,6 +922,10 @@ export default function Verification({
     });
     
     console.log("Deleted passage with ID:", passageIdStr);
+    
+    // Make sure notes panel stays open after deletion
+    // This ensures the user can continue working with passages
+    setNotesOpen(true);
   };
 
   // Handle save all metadata
@@ -700,20 +973,7 @@ export default function Verification({
     navigate(targetUrl);
   }, [projectId, navigate]);
   
-  // Update the navigation buttons to use the new functions
-  const handlePrevResult = () => {
-    if (allPages.length > 0 && currentIndex > 0) {
-      const prevIndex = currentIndex - 1;
-      const prevPageId = allPages[prevIndex]._id;
-      
-      console.log(`Moving to previous result (index ${prevIndex})`);
-      sessionStorage.setItem('currentPageIndex', prevIndex.toString());
-      
-      const keywordParam = itemsString ? `?keywords=${itemsString}` : '';
-      navigateToPage(prevPageId, keywordParam);
-    }
-  };
-  
+  // Handle navigation to next result
   const handleNextResult = () => {
     if (allPages.length > 0 && currentIndex < allPages.length - 1) {
       const nextIndex = currentIndex + 1;
@@ -726,6 +986,242 @@ export default function Verification({
       navigateToPage(nextPageId, keywordParam);
     }
   };
+  
+  // Handle navigation to previous result
+  const handlePrevResult = () => {
+    if (allPages.length > 0 && currentIndex > 0) {
+      const prevIndex = currentIndex - 1;
+      const prevPageId = allPages[prevIndex]._id;
+      
+      console.log(`Moving to previous result (index ${prevIndex})`);
+      sessionStorage.setItem('currentPageIndex', prevIndex.toString());
+      
+      const keywordParam = itemsString ? `?keywords=${itemsString}` : '';
+      navigateToPage(prevPageId, keywordParam);
+    }
+  };
+
+  // Add effect to monitor passages and highlighting
+  useEffect(() => {
+    if (passages.length > 0 && panel?.text) {
+      console.log(`DEBUG - Passages state updated: ${passages.length} passages`);
+      // Force re-render of highlights when passages change
+      const textContainer = document.querySelector('.selectable-text-container');
+      if (textContainer) {
+        // Check if highlights are rendering
+        setTimeout(() => {
+          const highlights = textContainer.querySelectorAll('.passage-highlight');
+          console.log(`DEBUG - After passages update: Found ${highlights.length} highlighted passages in DOM`);
+        }, 500);
+      }
+    }
+  }, [passages, panel]);
+
+  // Function to scroll to a passage by its ID
+  const scrollToPassage = (passageId) => {
+    if (!passageId) return;
+    
+    console.log(`Scrolling to passage with ID: ${passageId}`);
+    
+    // Find the passage text in the array
+    const passage = passages.find(p => String(p.id) === String(passageId));
+    
+    // If not found in current project passages, try to find in other projects
+    const otherPassage = !passage && otherProjectPassages.length > 0 
+      ? otherProjectPassages.find(p => String(p.id) === String(passageId))
+      : null;
+      
+    const targetPassage = passage || otherPassage;
+    
+    if (!targetPassage || !targetPassage.text) {
+      console.log(`Passage with ID ${passageId} not found or has no text`);
+      return;
+    }
+    
+    // Find the highlight element in the DOM
+    const textContainer = document.querySelector('.selectable-text-container');
+    if (!textContainer) return;
+    
+    // Try to find by data-passage-id first (most reliable)
+    let highlightEl = textContainer.querySelector(`[data-passage-id="${passageId}"]`);
+    
+    // If not found by ID, try to find by text content
+    if (!highlightEl) {
+      const allHighlights = textContainer.querySelectorAll('.passage-highlight, .passage-highlight-other');
+      for (const el of allHighlights) {
+        if (el.textContent === targetPassage.text) {
+          highlightEl = el;
+          break;
+        }
+      }
+    }
+    
+    if (highlightEl) {
+      // Scroll the element into view with smooth behavior
+      highlightEl.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center' 
+      });
+      
+      // Add a smooth transition effect to highlight the passage
+      const originalBackgroundColor = highlightEl.style.backgroundColor; // Store the original highlight color
+      
+      // Set initial transition properties for smooth animation
+      highlightEl.style.transition = 'background-color 1.5s ease';
+      
+      // Flash effect - bright orange highlight that fades back to original color
+      highlightEl.style.backgroundColor = '#ff9e80';
+      
+      // Set a timeout to fade back to the original color
+      setTimeout(() => {
+        highlightEl.style.backgroundColor = originalBackgroundColor;
+      }, 800);
+    } else {
+      console.log(`No highlight element found for passage: ${targetPassage.text.substring(0, 30)}...`);
+    }
+  };
+
+  // State for search functionality
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(-1);
+  const [searchVisible, setSearchVisible] = useState(true);
+  const searchInputRef = useRef(null);
+  const textContainerRef = useRef(null);
+
+  // Function to handle searching the text
+  const handleSearch = (term) => {
+    if (!term.trim() || !panel?.text) {
+      setSearchResults([]);
+      setCurrentSearchIndex(-1);
+      return;
+    }
+    
+    const text = panel.text;
+    const searchTermLower = term.toLowerCase();
+    const results = [];
+    
+    let index = text.toLowerCase().indexOf(searchTermLower);
+    while (index !== -1) {
+      results.push({
+        index,
+        text: text.substring(index, index + term.length)
+      });
+      index = text.toLowerCase().indexOf(searchTermLower, index + 1);
+    }
+    
+    setSearchResults(results);
+    
+    // Reset current index if the search term changed
+    if (results.length > 0) {
+      setCurrentSearchIndex(0);
+      scrollToSearchResult(results[0]);
+    } else {
+      setCurrentSearchIndex(-1);
+    }
+  };
+  
+  // Navigate to next/previous search result
+  const navigateSearchResult = (direction) => {
+    if (searchResults.length === 0) return;
+    
+    let newIndex;
+    if (direction === "next") {
+      newIndex = currentSearchIndex + 1 >= searchResults.length ? 0 : currentSearchIndex + 1;
+    } else {
+      newIndex = currentSearchIndex - 1 < 0 ? searchResults.length - 1 : currentSearchIndex - 1;
+    }
+    
+    setCurrentSearchIndex(newIndex);
+    scrollToSearchResult(searchResults[newIndex]);
+  };
+  
+  // Scroll to a specific search result
+  const scrollToSearchResult = (result) => {
+    if (!result || !textContainerRef.current) return;
+    
+    // First, find where in the rendered content this text appears
+    const textContainer = textContainerRef.current;
+    const textContent = textContainer.textContent;
+    
+    // Get all text nodes in the container
+    const textNodes = [];
+    const walk = document.createTreeWalker(textContainer, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    while (node = walk.nextNode()) {
+      textNodes.push(node);
+    }
+    
+    // Find the text node containing our search result
+    let cumulativeLength = 0;
+    let targetNode = null;
+    let nodeStartIndex = 0;
+    
+    for (const node of textNodes) {
+      const nodeLength = node.textContent.length;
+      
+      if (result.index >= cumulativeLength && result.index < cumulativeLength + nodeLength) {
+        targetNode = node;
+        nodeStartIndex = cumulativeLength;
+        break;
+      }
+      
+      cumulativeLength += nodeLength;
+    }
+    
+    if (targetNode) {
+      // Create a range for the search term
+      const range = document.createRange();
+      const startOffset = result.index - nodeStartIndex;
+      
+      // Set the range to our search term text
+      try {
+        range.setStart(targetNode, startOffset);
+        range.setEnd(targetNode, startOffset + result.text.length);
+        
+        // Scroll the range into view
+        const rangeRect = range.getBoundingClientRect();
+        const containerRect = textContainer.getBoundingClientRect();
+        
+        textContainer.scrollTo({
+          top: rangeRect.top - containerRect.top - containerRect.height / 2,
+          behavior: 'smooth'
+        });
+        
+        // Highlight the result with a temporary flash
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        
+        // Clear selection after a brief moment
+        setTimeout(() => {
+          if (document.activeElement !== searchInputRef.current) {
+            selection.removeAllRanges();
+          }
+        }, 1500);
+      } catch (e) {
+        console.error("Error highlighting search result:", e);
+      }
+    }
+  };
+  
+  // Focus the search input on page load
+  useEffect(() => {
+    if (searchInputRef.current && searchVisible) {
+      setTimeout(() => {
+        searchInputRef.current.focus();
+      }, 300);
+    }
+  }, [panel, searchVisible]);
+  
+  // Update search results when search term changes
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      handleSearch(searchTerm);
+    }, 300);
+    
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, panel]);
 
   if (!panel) return null;
   return (
@@ -761,6 +1257,7 @@ export default function Verification({
             }}
           >
             <Box 
+              ref={textContainerRef}
               sx={{
                 height: '100%',
                 overflow: 'auto',
@@ -776,25 +1273,113 @@ export default function Verification({
                   maxWidth: '42em',
                 },
                 '& .passage-highlight': {
-                  backgroundColor: '#a8e6cf',
+                  backgroundColor: '#ffb347', 
+                  padding: '0 2px', 
+                  margin: '0 1px',
+                  display: 'inline',
+                  boxShadow: '0 0 0 1px #ffb347',
+                  borderRadius: '2px',
+                  color: '#32302d',
+                  fontFamily: 'inherit'
+                },
+                '& .passage-highlight-other': {
                   padding: '0 2px',
                   margin: '0 1px',
+                  display: 'inline',
                   borderRadius: '2px',
-                  boxShadow: '0 0 0 1px #a8e6cf',
-                  fontFamily: 'inherit',
+                  color: '#32302d',
+                  fontFamily: 'inherit'
                 },
                 '& .keyword-highlight': {
-                  backgroundColor: '#ffff00',
+                  backgroundColor: '#ffff00', 
                   padding: '0 2px',
                   margin: '0 1px',
-                  borderRadius: '2px',
+                  display: 'inline',
                   boxShadow: '0 0 0 1px #ffff00',
-                  fontFamily: 'inherit',
+                  borderRadius: '2px',
+                  color: '#32302d',
+                  fontFamily: 'inherit'
+                },
+                '& ::selection': {
+                  backgroundColor: 'rgba(255, 170, 0, 0.3)'
                 }
               }}
               className="selectable-text-container"
             >
               {highlightKeywords(panel.text)}
+            </Box>
+
+            {/* Search bar at bottom left */}
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: 16,
+                left: 16,
+                zIndex: 10,
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                padding: '4px 8px',
+                maxWidth: '75%',
+                transform: searchVisible ? 'translateY(0)' : 'translateY(100%)',
+                transition: 'transform 0.2s ease-in-out',
+              }}
+            >
+              <IconButton
+                size="small"
+                onClick={() => setSearchVisible(!searchVisible)}
+                sx={{ mr: 0.5 }}
+              >
+                {searchVisible ? <KeyboardArrowDownIcon /> : <SearchIcon />}
+              </IconButton>
+
+              {searchVisible && (
+                <>
+                  <TextField
+                    inputRef={searchInputRef}
+                    placeholder="Search in text..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    variant="standard"
+                    size="small"
+                    autoFocus
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                      disableUnderline: true,
+                      sx: { fontSize: '14px' }
+                    }}
+                    sx={{ minWidth: 180 }}
+                  />
+                  
+                  <Typography variant="caption" sx={{ mx: 1, color: 'text.secondary' }}>
+                    {searchResults.length > 0 ? 
+                      `${currentSearchIndex + 1} of ${searchResults.length}` : 
+                      searchTerm ? 'No matches' : ''}
+                  </Typography>
+                  
+                  <IconButton 
+                    size="small" 
+                    disabled={searchResults.length === 0}
+                    onClick={() => navigateSearchResult('prev')}
+                  >
+                    <KeyboardArrowUpIcon fontSize="small" />
+                  </IconButton>
+                  
+                  <IconButton 
+                    size="small" 
+                    disabled={searchResults.length === 0}
+                    onClick={() => navigateSearchResult('next')}
+                  >
+                    <KeyboardArrowDownIcon fontSize="small" />
+                  </IconButton>
+                </>
+              )}
             </Box>
           </Stack>
           
@@ -1040,6 +1625,11 @@ export default function Verification({
         handleSaveMetadata={handleSaveMetadata}
         projectId={projectId}
         page_id={page_id}
+        scrollToPassage={scrollToPassage}
+        projectsWithPassages={projectsWithPassages}
+        selectedHighlightProjects={selectedHighlightProjects}
+        setSelectedHighlightProjects={setSelectedHighlightProjects}
+        projectColors={PROJECT_COLORS}
       />
     </Box>
   );

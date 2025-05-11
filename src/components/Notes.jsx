@@ -17,7 +17,12 @@ import {
   Accordion, 
   AccordionSummary, 
   AccordionDetails,
-  CircularProgress 
+  CircularProgress,
+  Tooltip,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
@@ -26,6 +31,8 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import DoneIcon from '@mui/icons-material/Done';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import axios from "axios";
 
 const Notes = ({ 
@@ -44,7 +51,12 @@ const Notes = ({
   handleDeletePassage,
   handleSaveMetadata,
   projectId,
-  page_id
+  page_id,
+  scrollToPassage,
+  projectsWithPassages = [],
+  selectedHighlightProjects = "current",
+  setSelectedHighlightProjects,
+  projectColors = []
 }) => {
   // Local state for the Notes component
   const [tabValue, setTabValue] = useState(0);
@@ -52,6 +64,7 @@ const Notes = ({
   const [saveStatus, setSaveStatus] = useState("idle"); // idle, saving, saved, error
   const [lastSaved, setLastSaved] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activePassage, setActivePassage] = useState(null);
 
   // Reset state when page_id changes
   useEffect(() => {
@@ -173,6 +186,24 @@ const Notes = ({
     });
   };
 
+  // Handle clicking on a passage to scroll to it in the text
+  const handlePassageClick = (passageId) => {
+    if (scrollToPassage) {
+      scrollToPassage(passageId);
+      setActivePassage(passageId); // Track which passage was last clicked
+      
+      // Reset active passage after a delay
+      setTimeout(() => {
+        setActivePassage(null);
+      }, 2000);
+    }
+  };
+
+  // Handle change in project highlight filter
+  const handleHighlightProjectChange = (event) => {
+    setSelectedHighlightProjects(event.target.value);
+  };
+
   // Function to save metadata to the backend
   const saveAllMetadata = async () => {
     try {
@@ -256,6 +287,9 @@ const Notes = ({
         // Update state to reflect saved status
         setSaveStatus("saved");
         setLastSaved(new Date());
+        
+        // Make sure the parent component has the latest passages data
+        setPassages(formattedPassages);
         
         // Reset to idle after 3 seconds
         setTimeout(() => {
@@ -474,6 +508,104 @@ const Notes = ({
           <Stack spacing={4}>
             <Typography variant="subtitle1" sx={{ fontSize: '18px', fontWeight: 600 }}>Saved Passages</Typography>
             
+            {/* Add instruction card for passage selection */}
+            <Card variant="outlined" sx={{ 
+              p: 2, 
+              backgroundColor: 'rgba(0,0,0,0.02)',
+              border: '1px solid rgba(0,0,0,0.1)',
+              mb: 2
+            }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '14px' }}>
+                <strong>How to use:</strong> Select text in the document to save important passages. 
+                Selected passages will be <span style={{ backgroundColor: '#ffb347', padding: '0 2px' }}>highlighted</span> in the text.
+                Click on any passage header to locate it in the document.
+              </Typography>
+            </Card>
+            
+            {/* Add Project Highlighting Selector */}
+            {projectsWithPassages.length > 0 && (
+              <FormControl variant="outlined" size="small" sx={{ mb: 2 }}>
+                <InputLabel id="highlight-project-label">
+                  <FilterAltIcon fontSize="small" sx={{ mr: 0.5, verticalAlign: 'middle' }} />
+                  Highlight Passages From
+                </InputLabel>
+                <Select
+                  labelId="highlight-project-label"
+                  value={selectedHighlightProjects}
+                  onChange={handleHighlightProjectChange}
+                  label="Highlight Passages From"
+                >
+                  <MenuItem value="current">
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box 
+                        sx={{ 
+                          width: 12, 
+                          height: 12, 
+                          backgroundColor: projectColors[0], 
+                          borderRadius: '50%',
+                          mr: 1
+                        }} 
+                      />
+                      Current Project Only
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="all">
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Box 
+                        sx={{ 
+                          width: 12, 
+                          height: 12, 
+                          background: 'linear-gradient(135deg, #ffb347 33%, #a8e6cf80 33%, #a8e6cf80 66%, #54c8e880 66%)', 
+                          borderRadius: '50%',
+                          mr: 1
+                        }} 
+                      />
+                      All Projects ({projectsWithPassages.length + 1})
+                    </Box>
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            )}
+            
+            {/* Project passage legend */}
+            {selectedHighlightProjects === "all" && projectsWithPassages.length > 0 && (
+              <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Typography variant="caption" sx={{ width: '100%', mb: 1, color: 'text.secondary' }}>
+                  Color Legend:
+                </Typography>
+                
+                <Chip
+                  size="small"
+                  label="Current Project"
+                  sx={{ 
+                    fontSize: '12px', 
+                    height: '24px',
+                    backgroundColor: projectColors[0],
+                    color: '#32302d'
+                  }}
+                />
+                
+                {projectsWithPassages.map((project, index) => {
+                  const colorIndex = (index % (projectColors.length - 1)) + 1; // Skip first color
+                  const projectColor = projectColors[colorIndex];
+                  
+                  return (
+                    <Chip
+                      key={project.project_id}
+                      size="small"
+                      label={project.project_title || `Project ${project.project_id.slice(-6)}`}
+                      sx={{ 
+                        fontSize: '12px', 
+                        height: '24px',
+                        backgroundColor: projectColor,
+                        color: '#32302d'
+                      }}
+                    />
+                  );
+                })}
+              </Box>
+            )}
+            
             {/* Passages - Simplified with no instructions */}
             <Box>
               {passages.length === 0 ? (
@@ -505,7 +637,11 @@ const Notes = ({
                         border: '1px solid rgba(0,0,0,0.08)',
                         borderRadius: '4px',
                         mb: 2,
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        ...(activePassage === passage.id && {
+                          borderColor: '#4caf50',
+                          boxShadow: '0 0 0 1px #4caf50'
+                        })
                       }}
                     >
                       <AccordionSummary 
@@ -525,18 +661,39 @@ const Notes = ({
                           '&.Mui-expanded': {
                             minHeight: 0,
                             backgroundColor: 'transparent',
-                          }
+                          },
+                          cursor: 'pointer'
                         }}
                       >
                         <Box sx={{ 
                           display: 'flex', 
                           alignItems: 'center', 
                           width: '100%',
-                          userSelect: 'none' 
+                          userSelect: 'none',
+                          justifyContent: 'space-between'
                         }}>
                           <Typography sx={{ fontWeight: 500 }}>
                             Passage {index + 1}
                           </Typography>
+                          <Tooltip title="Locate in text">
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent accordion from expanding
+                                handlePassageClick(passage.id);
+                              }}
+                              sx={{
+                                ml: 1,
+                                color: activePassage === passage.id ? 'primary.main' : 'action.active',
+                                '&:hover': {
+                                  color: 'primary.main',
+                                  backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                                }
+                              }}
+                            >
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </Box>
                         <Box
                           onClick={(e) => {
@@ -580,8 +737,11 @@ const Notes = ({
                               fontStyle: 'italic',
                               padding: '8px 0',
                               borderBottom: '1px solid rgba(0,0,0,0.08)',
-                              mb: 2
+                              mb: 2,
+                              position: 'relative',
+                              cursor: 'pointer'
                             }}
+                            onClick={() => handlePassageClick(passage.id)}
                           >
                             "{passage.text}"
                           </Typography>
