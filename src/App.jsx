@@ -88,7 +88,7 @@ const sx = {
     textTransform: "none",
     "&:hover": {
       borderColor: "white",
-      bgcolor: "rgba(255,255,255,0.1)",
+      bgcolor: "rgba(255, 0, 0, 0.1)",
     },
   },
 };

@@ -22,16 +22,24 @@ export default function ProjectLayout() {
 
   return (
     <Container maxWidth="lg">
+      <Typography 
+        variant="h4" 
+        sx={sx.logoText}
+        onClick={() => navigate("/")}
+      >
+        PROXIMUS
+      </Typography>
+      
+      <Button 
+        variant="outlined"
+        onClick={() => navigate("/projects")}
+        sx={sx.projectsButton}
+      >
+        Projects
+      </Button>
+      
       <Stack sx={sx.layoutWrapper}>
         <Box sx={sx.headerContainer}>
-          <IconButton 
-            sx={sx.homeButton} 
-            onClick={() => navigate("/projects")}
-            aria-label="home"
-          >
-            <HomeIcon sx={{ color: 'white' }} />
-          </IconButton>
-          
           {project && (
             <Box sx={sx.titleContainer}>
               <Typography variant="h5" align="center" sx={sx.projectTitle}>
@@ -62,67 +70,67 @@ function Navigation({ currentPath }) {
   const activePath = currentPath.split('/').pop();
 
   return (
-    <Stack direction="row" sx={sx.navWrapper}>
-      <Typography
-        variant="button"
-        sx={{
-          ...sx.navButton,
-          ...(activePath === id || activePath === '' ? sx.activeNavButton : {})
-        }}
-        onClick={() => navigate("")}
-      >
-        View
-      </Typography>
-      <Typography
-        variant="button"
-        sx={{
-          ...sx.navButton,
-          ...(activePath === 'edit' ? sx.activeNavButton : {})
-        }}
-        onClick={() => navigate("edit")}
-      >
-        Search
-      </Typography>
-      <Typography
-        variant="button"
-        sx={{
-          ...sx.navButton,
-          ...(activePath === 'settings' ? sx.activeNavButton : {})
-        }}
-        onClick={() => navigate("settings")}
-      >
-        Settings
-      </Typography>
-    </Stack>
+    <Box sx={{ display: "flex", alignItems: "center", mb: 1.5, ml: 3 }}>
+      <Stack direction="row" sx={sx.navWrapper}>
+        <Typography
+          variant="button"
+          sx={{
+            ...sx.navButton,
+            ...(activePath === id || activePath === '' ? sx.activeNavButton : {})
+          }}
+          onClick={() => navigate("")}
+        >
+          View
+        </Typography>
+        <Typography
+          variant="button"
+          sx={{
+            ...sx.navButton,
+            ...(activePath === 'edit' ? sx.activeNavButton : {})
+          }}
+          onClick={() => navigate("edit")}
+        >
+          Search
+        </Typography>
+        <Typography
+          variant="button"
+          sx={{
+            ...sx.navButton,
+            ...(activePath === 'settings' ? sx.activeNavButton : {})
+          }}
+          onClick={() => navigate("settings")}
+        >
+          Settings
+        </Typography>
+      </Stack>
+    </Box>
   );
 }
 
 const sx = {
   layoutWrapper: {
     width: "100%",
-    my: 4,
+    my: 2,
+    mt: 6,
   },
   headerContainer: {
     position: 'relative',
     width: '100%',
-    mb: 2,
+    mb: 3.5,
     pl: 3,
-  },
-  homeButton: {
-    position: 'absolute',
-    top: 0,
-    left: 3,
-    zIndex: 10,
   },
   titleContainer: {
     textAlign: 'center',
-    mb: 2,
-    pt: 2,
+    mb: 1,
+    pt: 0,
   },
   projectTitle: {
-    fontWeight: 'medium',
+    fontWeight: 600,
+    fontSize: '2rem',
     mb: 0.5,
     color: 'white',
+    fontFamily: '"Poppins", sans-serif',
+    letterSpacing: '0.02em',
   },
   projectDescription: {
     color: 'white',
@@ -130,6 +138,11 @@ const sx = {
     maxWidth: '80%',
     mx: 'auto',
     opacity: 0.85,
+    fontFamily: '"Inter", sans-serif',
+    fontSize: '1rem',
+    letterSpacing: '0.01em',
+    lineHeight: 1.5,
+    fontWeight: 300,
   },
   contentContainer: {
     width: "100%",
@@ -141,11 +154,8 @@ const sx = {
     border: "1px solid white",
     borderRadius: 2,
     p: 1, 
-    mb: 3,
     backgroundColor: "transparent",
     width: "auto",
-    alignSelf: "flex-start",
-    ml: 3,
   },
   navButton: {
     color: "white",
@@ -165,6 +175,39 @@ const sx = {
     fontWeight: 700,
     "&:hover": {
       backgroundColor: "rgba(66, 133, 244, 0.8)",
+    },
+  },
+  projectsButton: {
+    position: 'absolute',
+    top: 60,
+    left: 30,
+    color: 'white',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 1.5,
+    padding: '6px 12px',
+    fontSize: '0.875rem',
+    textTransform: 'none',
+    fontWeight: 500,
+    fontFamily: '"Poppins", sans-serif',
+    letterSpacing: '0.02em',
+    '&:hover': {
+      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+      borderColor: 'rgba(255, 255, 255, 0.5)',
+    }
+  },
+  logoText: {
+    position: 'absolute',
+    top: 20,
+    left: 24,
+    color: 'white',
+    fontWeight: 700,
+    fontSize: '1.2rem',
+    cursor: 'pointer',
+    fontFamily: '"Poppins", sans-serif',
+    letterSpacing: '0.06em',
+    userSelect: 'none',
+    '&:hover': {
+      opacity: 0.9,
     },
   },
 };

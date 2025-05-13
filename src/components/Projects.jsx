@@ -30,19 +30,18 @@ export default function Projects() {
 
   return (
     <Box sx={sx.container}>
+      {/* Logo */}
+      <Typography 
+        variant="h4" 
+        sx={sx.logoText}
+        onClick={() => navigate("/")}
+      >
+        PROXIMUS
+      </Typography>
+      
       {/* Header */}
       <Box sx={sx.header}>
-        <Typography sx={sx.headerTitle}>All Projects</Typography>
-
-        <TextField
-          placeholder="Search"
-          variant="outlined"
-          sx={sx.searchField}
-        />
-
-        <Button component={Link} to="/" variant="outlined" sx={sx.homeButton}>
-          Home
-        </Button>
+        <Typography sx={sx.headerTitle}>Projects</Typography>
       </Box>
 
       {/* Create + Project Grid */}
@@ -66,9 +65,14 @@ export default function Projects() {
             onClick={() => navigate(`/project/${project._id}`)}
             sx={sx.projectBox}
           >
-            <Typography sx={sx.projectLabel}>
-              {i}. {project.title} — {project.description}
-            </Typography>
+            <Box sx={sx.projectContent}>
+              <Typography sx={sx.projectTitle}>
+                {project.title || "Untitled Project"}
+              </Typography>
+              <Typography sx={sx.projectDescription}>
+                {project.description || "No description"}
+              </Typography>
+            </Box>
           </Box>
         ))}
       </Box>
@@ -82,45 +86,21 @@ const sx = {
     flexDirection: "column",
     gap: 5,
     p: 4,
+    position: "relative",
+    pt: 6,
   },
   header: {
     display: "flex",
     alignItems: "center",
-    gap: 2,
     justifyContent: "center",
+    mb: 2,
   },
   headerTitle: {
-    fontSize: "1.5rem",
+    fontSize: "2.5rem",
     fontWeight: 600,
-  },
-  searchField: {
-    width: "35%",
-    "& .MuiOutlinedInput-root": {
-      // default white border
-      "& fieldset": {
-        borderColor: "white",
-      },
-      // on hover show blue
-      "&:hover fieldset": {
-        borderColor: "#45b6fe",
-      },
-      // on focus also blue
-      "&.Mui-focused fieldset": {
-        borderColor: "#45b6fe",
-      },
-      // placeholder text color
-      "& input::placeholder": {
-        color: "lightgrey",
-        opacity: 1,
-      },
-      // input text color
-      "& input": {
-        color: "white",
-      },
-    },
-  },
-  homeButton: {
-    textTransform: "none",
+    fontFamily: '"Poppins", sans-serif',
+    letterSpacing: '0.02em',
+    color: 'white',
   },
   grid: {
     display: "flex",
@@ -132,35 +112,99 @@ const sx = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    mb: 2,
+    ml: 2,
+    width: 220,
   },
   createButton: {
-    width: 200,
+    width: 220,
     height: 200,
     textTransform: "none",
+    borderColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 2,
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    transition: "all 0.2s ease-in-out",
+    "&:hover": {
+      borderColor: "#45b6fe",
+      boxShadow: "0px 4px 15px rgba(0, 0, 0, 0.3)",
+      backgroundColor: "rgba(255, 255, 255, 0.06)",
+      transform: "translateY(-2px)",
+    },
   },
   createIcon: {
-    fontSize: 100,
+    fontSize: 60,
+    color: "rgba(255, 255, 255, 0.8)",
   },
   createLabel: {
     mt: 1,
+    color: "white",
+    fontSize: "1rem",
+    fontFamily: '"Poppins", sans-serif',
+    fontWeight: 500,
   },
   projectBox: {
-    width: 200,
+    width: 220,
     height: 200,
-    border: "1px solid #ccc",
+    border: "1px solid rgba(255, 255, 255, 0.2)",
     borderRadius: 2,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
     ml: 2,
+    mb: 2,
+    padding: 2,
+    backgroundColor: "rgba(255, 255, 255, 0.03)",
+    transition: "all 0.2s ease-in-out",
     "&:hover": {
       borderColor: "#45b6fe",
-      boxShadow: "0px 4px 8px rgba(0,0,0,0.2)",
+      boxShadow: "0px 4px 15px rgba(0, 0, 0, 0.3)",
+      backgroundColor: "rgba(255, 255, 255, 0.06)",
+      transform: "translateY(-2px)",
     },
   },
-  projectLabel: {
+  projectContent: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
     textAlign: "center",
-    px: 1,
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+  },
+  projectTitle: {
+    fontSize: "1.1rem",
+    fontWeight: 600,
+    marginBottom: 1.5,
+    fontFamily: '"Poppins", sans-serif',
+    color: "white",
+    letterSpacing: "0.02em",
+  },
+  projectDescription: {
+    fontSize: "0.85rem",
+    color: "rgba(255, 255, 255, 0.7)",
+    maxWidth: "90%",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    display: "-webkit-box",
+    WebkitLineClamp: 3,
+    WebkitBoxOrient: "vertical",
+    fontFamily: '"Inter", sans-serif',
+    lineHeight: 1.4,
+  },
+  logoText: {
+    position: 'absolute',
+    top: 20,
+    left: 24,
+    color: 'white',
+    fontWeight: 700,
+    fontSize: '1.2rem',
+    cursor: 'pointer',
+    fontFamily: '"Poppins", sans-serif',
+    letterSpacing: '0.06em',
+    userSelect: 'none',
+    '&:hover': {
+      opacity: 0.9,
+    },
   },
 };

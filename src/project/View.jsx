@@ -27,6 +27,17 @@ import CircularProgress from '@mui/material/CircularProgress';
 import axios from "axios";
 import { useOutletContext, useNavigate, useParams } from "react-router-dom";
 
+// Helper function to format collection name
+const formatCollectionName = (volumeSet) => {
+  if (!volumeSet) return "Unknown Collection";
+  
+  // Capitalize first letter of each word 
+  return volumeSet
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 export default function Main() {
   const { project } = useOutletContext();
   const [page_docs, set_page_docs] = useState([]);
@@ -246,6 +257,9 @@ export default function Main() {
     sessionStorage.setItem('allPages', JSON.stringify(page_docs));
     sessionStorage.setItem('currentPageIndex', index.toString());
     
+    // Store "view" as the referrer
+    sessionStorage.setItem('verification_referrer', 'view');
+    
     // Check if we have keywords for this page
     const doc = page_docs.find(doc => doc._id === pageId);
     const keywordParam = doc && doc.keywords ? `?keywords=${encodeURIComponent(doc.keywords)}` : '';
@@ -444,6 +458,21 @@ export default function Main() {
                         <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 2 }}>
                           Page {doc.page_number}
                         </Typography>
+                        {/* Add collection badge */}
+                        {doc.volume_set && (
+                          <Chip
+                            label={formatCollectionName(doc.volume_set)}
+                            size="small"
+                            sx={{
+                              bgcolor: doc.volume_set === "statutes of the realm" ? '#d1a04f' : '#3f7bb6',
+                              color: 'white',
+                              fontWeight: 500,
+                              fontSize: '0.7rem',
+                              height: '18px',
+                              mr: 1
+                            }}
+                          />
+                        )}
                         <Chip 
                           label="ADDED" 
                           size="small" 
@@ -459,6 +488,10 @@ export default function Main() {
                       </Box>
                       
                       <Typography variant="body2" sx={{ mt: 0.5, ml: 4 }}>
+                        {/* Show volume title */}
+                        <Box component="span" sx={{ fontSize: '0.85rem', color: '#555', mr: 1 }}>
+                          {doc.volume_title}
+                        </Box>
                         {typeof excerpt === 'string' ? (
                           excerpt
                         ) : (

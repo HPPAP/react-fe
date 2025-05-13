@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Stack, Typography, TextField, Button, Box, IconButton, Drawer, Paper, Tabs, Tab, Divider, FormControlLabel, Switch, Chip, InputAdornment, Card, CardContent, Accordion, AccordionSummary, AccordionDetails, MenuItem, Menu } from "@mui/material";
 import "../App.css";
-import { Link, useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import NotesIcon from '@mui/icons-material/Notes';
 import CloseIcon from '@mui/icons-material/Close';
@@ -9,9 +9,15 @@ import AddIcon from '@mui/icons-material/Add';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import DeleteIcon from '@mui/icons-material/Delete';
-import SearchIcon from '@mui/icons-material/Search';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import KeyboardDoubleArrowLeftIcon from '@mui/icons-material/KeyboardDoubleArrowLeft';
+import KeyboardDoubleArrowRightIcon from '@mui/icons-material/KeyboardDoubleArrowRight';
+import SaveIcon from '@mui/icons-material/Save';
+import HomeIcon from '@mui/icons-material/Home';
+import SearchIcon from '@mui/icons-material/Search';
 import Notes from "./Notes";
 
 // Define color palette for different projects' passages
@@ -47,6 +53,9 @@ export default function Verification({
   const [curr_pages, set_curr_pages] = useState();
   const [notesOpen, setNotesOpen] = useState(false);
   
+  // Add a state to track the referrer
+  const [referrer, setReferrer] = useState("view"); // Default to view
+  
   // Notes data state
   const [tabValue, setTabValue] = useState(0);
   const [universalDate, setUniversalDate] = useState("");
@@ -58,6 +67,9 @@ export default function Verification({
   const [selectionMenuAnchor, setSelectionMenuAnchor] = useState(null);
   const [selectedText, setSelectedText] = useState("");
   const [selectedRange, setSelectedRange] = useState(null);
+
+  // Add back textContainerRef
+  const textContainerRef = useRef(null);
 
   // Get all pages data either from props or from sessionStorage
   const [allPages, setAllPages] = useState(() => {
@@ -136,6 +148,17 @@ export default function Verification({
     
     // No year found
     return "";
+  };
+
+  // Helper function to format collection name
+  const formatCollectionName = (volumeSet) => {
+    if (!volumeSet) return "Unknown Collection";
+    
+    // Capitalize first letter of each word 
+    return volumeSet
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   };
 
   // Update the currentIndex when page_id changes
@@ -452,6 +475,154 @@ export default function Verification({
     }
   }, [page_id, projectId]);
 
+  // Add state for search functionality
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [currentSearchResult, setCurrentSearchResult] = useState(0);
+  const [showSearch, setShowSearch] = useState(false);
+
+  // Add function to handle search
+  const handleSearch = useCallback(() => {
+    if (!searchQuery.trim() || !panel?.text) {
+      setSearchResults([]);
+      return;
+    }
+    
+    const query = searchQuery.trim().toLowerCase();
+    const text = panel.text.toLowerCase();
+    const results = [];
+    
+    let index = text.indexOf(query);
+    while (index !== -1) {
+      results.push({
+        start: index,
+        end: index + query.length,
+        text: panel.text.substring(index, index + query.length)
+      });
+      index = text.indexOf(query, index + 1);
+    }
+    
+    setSearchResults(results);
+    setCurrentSearchResult(results.length > 0 ? 0 : -1);
+    
+    // Scroll to first result if found
+    if (results.length > 0) {
+      scrollToSearchResult(0);
+    }
+  }, [searchQuery, panel]);
+  
+  // Add effect to trigger search on query change
+  useEffect(() => {
+    handleSearch();
+  }, [searchQuery, handleSearch]);
+  
+  // Function to scroll to a specific search result
+  const scrollToSearchResult = (resultIndex) => {
+    if (resultIndex < 0 || !searchResults.length || resultIndex >= searchResults.length) {
+      return;
+    }
+    
+    const result = searchResults[resultIndex];
+    const textContainer = document.querySelector('.selectable-text-container');
+    if (!textContainer) return;
+    
+    // Create a temporary element for the result
+    const tempElement = document.createElement('span');
+    tempElement.id = `search-result-${resultIndex}`;
+    tempElement.className = 'search-result current';
+    tempElement.textContent = result.text;
+    
+    // Find the text node containing this result
+    const textNodes = [];
+    const walkTree = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        textNodes.push(node);
+      } else {
+        for (const child of node.childNodes) {
+          walkTree(child);
+        }
+      }
+    };
+    
+    walkTree(textContainer);
+    
+    // Find the cumulative text position to identify which text node contains our result
+    let currentPosition = 0;
+    let targetNode = null;
+    let localStart = 0;
+    
+    for (const node of textNodes) {
+      const nodeLength = node.textContent.length;
+      if (currentPosition <= result.start && result.start < currentPosition + nodeLength) {
+        targetNode = node;
+        localStart = result.start - currentPosition;
+        break;
+      }
+      currentPosition += nodeLength;
+    }
+    
+    if (targetNode) {
+      // Create a range around the search result
+      const range = document.createRange();
+      range.setStart(targetNode, localStart);
+      range.setEnd(targetNode, localStart + result.text.length);
+      
+      // Get the rect of this range
+      const rects = range.getClientRects();
+      if (rects.length > 0) {
+        const rect = rects[0];
+        
+        // Scroll the element into view
+        textContainer.scrollTo({
+          top: rect.top + textContainer.scrollTop - textContainer.offsetTop - 100,
+          behavior: 'smooth'
+        });
+        
+        // Highlight the current result differently
+        // First remove any existing "current" class
+        const currentElements = textContainer.querySelectorAll('.search-result.current');
+        currentElements.forEach(el => {
+          el.classList.remove('current');
+        });
+        
+        // Then find our highlight and add the current class
+        setTimeout(() => {
+          const highlights = textContainer.querySelectorAll('.search-result');
+          if (highlights[resultIndex]) {
+            highlights[resultIndex].classList.add('current');
+          }
+        }, 100);
+      }
+    }
+  };
+  
+  // Function to navigate to next/previous search result
+  const navigateSearchResults = (direction) => {
+    if (!searchResults.length) return;
+    
+    let newIndex;
+    if (direction === 'next') {
+      newIndex = (currentSearchResult + 1) % searchResults.length;
+    } else {
+      newIndex = (currentSearchResult - 1 + searchResults.length) % searchResults.length;
+    }
+    
+    setCurrentSearchResult(newIndex);
+    scrollToSearchResult(newIndex);
+  };
+  
+  // Handle key press in search field
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      navigateSearchResults('next');
+    } else if (e.key === 'Escape') {
+      setShowSearch(false);
+      setSearchQuery("");
+    }
+  };
+
+  // Modified highlightKeywords function to include search results
   const highlightKeywords = (text) => {
     if (!text) return "";
     
@@ -466,22 +637,19 @@ export default function Verification({
       passagesToHighlight = [...passages, ...otherProjectPassages];
     }
     
-    if (!allKeywords.length && !passagesToHighlight.length) return text;
+    if (!allKeywords.length && !passagesToHighlight.length && !searchResults.length) return text;
 
     console.log("DEBUG - highlightKeywords called with:", {
       textLength: text?.length || 0,
       keywordsCount: allKeywords?.length || 0,
-      passagesCount: passagesToHighlight?.length || 0
+      passagesCount: passagesToHighlight?.length || 0,
+      searchResultsCount: searchResults?.length || 0
     });
-    
-    if (passagesToHighlight.length > 0) {
-      console.log("DEBUG - Passages to highlight:", JSON.stringify(passagesToHighlight));
-    }
     
     // Create a copy of the text that we'll transform with highlighted spans
     let result = [];
     
-    // Start by finding all passage positions in the text
+    // Start by finding all positions in the text that need highlighting
     const positions = [];
     
     // Normalize text functions - used to handle potential whitespace differences
@@ -613,12 +781,26 @@ export default function Verification({
       });
     }
     
+    // Add search results to positions
+    if (searchResults.length > 0 && searchQuery.trim()) {
+      searchResults.forEach((result, index) => {
+        positions.push({
+          start: result.start,
+          end: result.end,
+          content: result.text,
+          type: 'search',
+          index: index,
+          isCurrent: index === currentSearchResult
+        });
+      });
+    }
+    
     console.log(`DEBUG - Total positions to highlight: ${positions.length}`);
     
     // Sort positions by start index
     positions.sort((a, b) => a.start - b.start);
     
-    // Handle overlapping positions (prioritize passages over keywords)
+    // Handle overlapping positions (prioritize passages over keywords over search)
     const mergedPositions = [];
     for (const pos of positions) {
       if (mergedPositions.length === 0) {
@@ -630,21 +812,19 @@ export default function Verification({
       
       // Check for overlap
       if (pos.start <= lastPos.end) {
-        // If this is a passage and the last was a keyword, replace it
-        if (pos.type === 'passage' && lastPos.type === 'keyword') {
+        // Prioritize by type
+        const typePriority = { passage: 3, keyword: 2, search: 1 };
+        const currentPriority = typePriority[lastPos.type] || 0;
+        const newPriority = typePriority[pos.type] || 0;
+        
+        // If new position has higher priority, replace last position
+        if (newPriority > currentPriority) {
           mergedPositions[mergedPositions.length - 1] = pos;
         }
-        // Otherwise extend the last position
+        // Otherwise extend the last position if needed
         else if (pos.end > lastPos.end) {
           lastPos.end = pos.end;
           lastPos.content = text.substring(lastPos.start, lastPos.end);
-          // Preserve the passage ID if available
-          if (pos.type === 'passage' && pos.id) {
-            lastPos.id = pos.id;
-            lastPos.type = 'passage';
-            lastPos.projectId = pos.projectId;
-            lastPos.color = pos.color;
-          }
         }
       } else {
         mergedPositions.push(pos);
@@ -701,7 +881,7 @@ export default function Verification({
             {pos.content}
           </span>
         );
-      } else {
+      } else if (pos.type === 'keyword') {
         result.push(
           <span 
             key={`keyword-${pos.start}`} 
@@ -716,6 +896,27 @@ export default function Verification({
               color: '#32302d',
               fontFamily: 'inherit'
             }}
+          >
+            {pos.content}
+          </span>
+        );
+      } else if (pos.type === 'search') {
+        // Add special highlighting for search results
+        result.push(
+          <span 
+            key={`search-${pos.start}-${pos.index}`} 
+            className={`search-result ${pos.isCurrent ? 'current' : ''}`}
+            style={{ 
+              backgroundColor: pos.isCurrent ? '#ff6b6b' : '#ff9f80', 
+              padding: '0 2px',
+              margin: '0 1px',
+              display: 'inline',
+              boxShadow: `0 0 0 1px ${pos.isCurrent ? '#ff6b6b' : '#ff9f80'}`,
+              borderRadius: '2px',
+              color: '#32302d',
+              fontFamily: 'inherit'
+            }}
+            data-search-index={pos.index}
           >
             {pos.content}
           </span>
@@ -967,11 +1168,26 @@ export default function Verification({
     navigate(targetUrl);
   }, [projectId, page_id, navigate]);
   
-  // Function to navigate to edit view
-  const navigateToEdit = useCallback(() => {
-    const targetUrl = `/project/${projectId}/edit`;
-    navigate(targetUrl);
-  }, [projectId, navigate]);
+  // Add reference to location to get the referrer
+  const location = useLocation();
+  
+  // Determine the referrer when component mounts
+  useEffect(() => {
+    // Check if we have a referrer in sessionStorage
+    const storedReferrer = sessionStorage.getItem('verification_referrer');
+    if (storedReferrer) {
+      setReferrer(storedReferrer);
+    } else {
+      // Default to "view" if no referrer found
+      setReferrer("view");
+    }
+  }, []);
+  
+  // Update the navigateToEdit function to use the correct destination
+  const navigateToOverview = useCallback(() => {
+    // Navigate to the appropriate page based on referrer
+    navigate(`/project/${projectId}${referrer === 'edit' ? '/edit' : ''}`);
+  }, [projectId, navigate, referrer]);
   
   // Handle navigation to next result
   const handleNextResult = () => {
@@ -1081,151 +1297,39 @@ export default function Verification({
     }
   };
 
-  // State for search functionality
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [currentSearchIndex, setCurrentSearchIndex] = useState(-1);
-  const [searchVisible, setSearchVisible] = useState(true);
-  const searchInputRef = useRef(null);
-  const textContainerRef = useRef(null);
-
-  // Function to handle searching the text
-  const handleSearch = (term) => {
-    if (!term.trim() || !panel?.text) {
-      setSearchResults([]);
-      setCurrentSearchIndex(-1);
-      return;
-    }
-    
-    const text = panel.text;
-    const searchTermLower = term.toLowerCase();
-    const results = [];
-    
-    let index = text.toLowerCase().indexOf(searchTermLower);
-    while (index !== -1) {
-      results.push({
-        index,
-        text: text.substring(index, index + term.length)
-      });
-      index = text.toLowerCase().indexOf(searchTermLower, index + 1);
-    }
-    
-    setSearchResults(results);
-    
-    // Reset current index if the search term changed
-    if (results.length > 0) {
-      setCurrentSearchIndex(0);
-      scrollToSearchResult(results[0]);
-    } else {
-      setCurrentSearchIndex(-1);
-    }
-  };
-  
-  // Navigate to next/previous search result
-  const navigateSearchResult = (direction) => {
-    if (searchResults.length === 0) return;
-    
-    let newIndex;
-    if (direction === "next") {
-      newIndex = currentSearchIndex + 1 >= searchResults.length ? 0 : currentSearchIndex + 1;
-    } else {
-      newIndex = currentSearchIndex - 1 < 0 ? searchResults.length - 1 : currentSearchIndex - 1;
-    }
-    
-    setCurrentSearchIndex(newIndex);
-    scrollToSearchResult(searchResults[newIndex]);
-  };
-  
-  // Scroll to a specific search result
-  const scrollToSearchResult = (result) => {
-    if (!result || !textContainerRef.current) return;
-    
-    // First, find where in the rendered content this text appears
-    const textContainer = textContainerRef.current;
-    const textContent = textContainer.textContent;
-    
-    // Get all text nodes in the container
-    const textNodes = [];
-    const walk = document.createTreeWalker(textContainer, NodeFilter.SHOW_TEXT, null, false);
-    let node;
-    while (node = walk.nextNode()) {
-      textNodes.push(node);
-    }
-    
-    // Find the text node containing our search result
-    let cumulativeLength = 0;
-    let targetNode = null;
-    let nodeStartIndex = 0;
-    
-    for (const node of textNodes) {
-      const nodeLength = node.textContent.length;
-      
-      if (result.index >= cumulativeLength && result.index < cumulativeLength + nodeLength) {
-        targetNode = node;
-        nodeStartIndex = cumulativeLength;
-        break;
-      }
-      
-      cumulativeLength += nodeLength;
-    }
-    
-    if (targetNode) {
-      // Create a range for the search term
-      const range = document.createRange();
-      const startOffset = result.index - nodeStartIndex;
-      
-      // Set the range to our search term text
-      try {
-        range.setStart(targetNode, startOffset);
-        range.setEnd(targetNode, startOffset + result.text.length);
-        
-        // Scroll the range into view
-        const rangeRect = range.getBoundingClientRect();
-        const containerRect = textContainer.getBoundingClientRect();
-        
-        textContainer.scrollTo({
-          top: rangeRect.top - containerRect.top - containerRect.height / 2,
-          behavior: 'smooth'
-        });
-        
-        // Highlight the result with a temporary flash
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-        
-        // Clear selection after a brief moment
-        setTimeout(() => {
-          if (document.activeElement !== searchInputRef.current) {
-            selection.removeAllRanges();
-          }
-        }, 1500);
-      } catch (e) {
-        console.error("Error highlighting search result:", e);
-      }
-    }
-  };
-  
-  // Focus the search input on page load
-  useEffect(() => {
-    if (searchInputRef.current && searchVisible) {
-      setTimeout(() => {
-        searchInputRef.current.focus();
-      }, 300);
-    }
-  }, [panel, searchVisible]);
-  
-  // Update search results when search term changes
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      handleSearch(searchTerm);
-    }, 300);
-    
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, panel]);
-
   if (!panel) return null;
+  
+  // Check if this is a Statutes of the Realm document
+  const isStatutesDocument = panel.volume_set === "statutes of the realm";
+  
   return (
     <Box sx={{ display: 'flex', position: 'relative' }}>
+      {/* Add Back button at the top left */}
+      <Button 
+        variant="outlined" 
+        onClick={navigateToOverview}
+        startIcon={<HomeIcon />}
+        sx={{ 
+          position: 'absolute',
+          bottom: 20,
+          left: 20,
+          zIndex: 10,
+          color: '#fff',
+          borderColor: 'rgba(255, 255, 255, 0.5)',
+          '&:hover': { 
+            borderColor: '#fff',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)'
+          },
+          px: 2,
+          py: 1,
+          borderRadius: 2,
+          textTransform: 'none',
+          fontWeight: 500
+        }}
+      >
+        {referrer === 'edit' ? 'Back to Search' : 'Back to Overview'}
+      </Button>
+
       <Box sx={{ 
         width: notesOpen ? 'calc(100% - 450px)' : '100%',
         transition: 'width 0.3s ease-in-out',
@@ -1247,7 +1351,7 @@ export default function Verification({
         >
           <Stack 
             sx={{
-              width: '50%',
+              width: isStatutesDocument ? '100%' : '50%', // Full width for Statutes, half for others
               height: '100%',
               borderRadius: 1,
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
@@ -1270,7 +1374,7 @@ export default function Verification({
                 letterSpacing: '0.01em',
                 '& p, & div': { 
                   marginBottom: '1.2em',
-                  maxWidth: '42em',
+                  maxWidth: isStatutesDocument ? '60em' : '42em', // Wider for Statutes
                 },
                 '& .passage-highlight': {
                   backgroundColor: '#ffb347', 
@@ -1300,6 +1404,21 @@ export default function Verification({
                   color: '#32302d',
                   fontFamily: 'inherit'
                 },
+                '& .search-result': {
+                  backgroundColor: '#ff9f80',
+                  padding: '0 2px',
+                  margin: '0 1px',
+                  display: 'inline',
+                  boxShadow: '0 0 0 1px #ff9f80',
+                  borderRadius: '2px',
+                  color: '#32302d',
+                  fontFamily: 'inherit'
+                },
+                '& .search-result.current': {
+                  backgroundColor: '#ff6b6b',
+                  boxShadow: '0 0 0 1px #ff6b6b',
+                  fontWeight: 'bold'
+                },
                 '& ::selection': {
                   backgroundColor: 'rgba(255, 170, 0, 0.3)'
                 }
@@ -1308,281 +1427,383 @@ export default function Verification({
             >
               {highlightKeywords(panel.text)}
             </Box>
-
-            {/* Search bar at bottom left */}
-            <Box
-              sx={{
+            
+            {/* Search Bar */}
+            {showSearch && (
+              <Box sx={{
                 position: 'absolute',
-                bottom: 16,
-                left: 16,
-                zIndex: 10,
+                bottom: 20,
+                left: 20,
                 display: 'flex',
                 alignItems: 'center',
+                zIndex: 10,
                 backgroundColor: 'rgba(255, 255, 255, 0.9)',
                 borderRadius: 2,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                 padding: '4px 8px',
-                maxWidth: '75%',
-                transform: searchVisible ? 'translateY(0)' : 'translateY(100%)',
-                transition: 'transform 0.2s ease-in-out',
-              }}
-            >
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+              }}>
+                <TextField
+                  size="small"
+                  placeholder="Search in text..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                  variant="outlined"
+                  autoFocus
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon fontSize="small" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchResults.length > 0 && (
+                      <InputAdornment position="end">
+                        <Typography variant="caption" sx={{ mx: 1 }}>
+                          {currentSearchResult + 1}/{searchResults.length}
+                        </Typography>
+                        <Box sx={{ display: 'flex' }}>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => navigateSearchResults('prev')}
+                            disabled={searchResults.length === 0}
+                          >
+                            <KeyboardArrowUpIcon fontSize="small" />
+                          </IconButton>
+                          <IconButton 
+                            size="small" 
+                            onClick={() => navigateSearchResults('next')}
+                            disabled={searchResults.length === 0}
+                          >
+                            <KeyboardArrowDownIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ width: 300, mr: 1 }}
+                />
+                <IconButton 
+                  size="small" 
+                  onClick={() => {
+                    setShowSearch(false);
+                    setSearchQuery("");
+                  }}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            )}
+            
+            {/* Search Toggle Button */}
+            {!showSearch && (
               <IconButton
-                size="small"
-                onClick={() => setSearchVisible(!searchVisible)}
-                sx={{ mr: 0.5 }}
+                onClick={() => setShowSearch(true)}
+                sx={{
+                  position: 'absolute',
+                  bottom: 20,
+                  left: 20,
+                  backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.9)' },
+                  boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
+                  zIndex: 10
+                }}
               >
-                {searchVisible ? <KeyboardArrowDownIcon /> : <SearchIcon />}
+                <SearchIcon />
               </IconButton>
-
-              {searchVisible && (
-                <>
-                  <TextField
-                    inputRef={searchInputRef}
-                    placeholder="Search in text..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    variant="standard"
-                    size="small"
-                    autoFocus
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <SearchIcon fontSize="small" />
-                        </InputAdornment>
-                      ),
-                      disableUnderline: true,
-                      sx: { fontSize: '14px' }
-                    }}
-                    sx={{ minWidth: 180 }}
-                  />
-                  
-                  <Typography variant="caption" sx={{ mx: 1, color: 'text.secondary' }}>
-                    {searchResults.length > 0 ? 
-                      `${currentSearchIndex + 1} of ${searchResults.length}` : 
-                      searchTerm ? 'No matches' : ''}
-                  </Typography>
-                  
-                  <IconButton 
-                    size="small" 
-                    disabled={searchResults.length === 0}
-                    onClick={() => navigateSearchResult('prev')}
-                  >
-                    <KeyboardArrowUpIcon fontSize="small" />
-                  </IconButton>
-                  
-                  <IconButton 
-                    size="small" 
-                    disabled={searchResults.length === 0}
-                    onClick={() => navigateSearchResult('next')}
-                  >
-                    <KeyboardArrowDownIcon fontSize="small" />
-                  </IconButton>
-                </>
-              )}
-            </Box>
+            )}
           </Stack>
           
-          <Stack 
-            sx={{
-              width: '50%',
-              height: '100%',
-              borderRadius: 1,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              overflow: 'hidden',
-              backgroundColor: '#f9f7f1',
-              position: 'relative'
-            }}
-          >
-            <Box 
+          {/* Only show image view for non-Statutes documents */}
+          {!isStatutesDocument && (
+            <Stack 
               sx={{
-                width: "100%",
-                height: "100%",
-                overflow: "auto",
-                cursor: "zoom-in",
-                display: "flex",
-                justifyContent: "flex-start",
-                alignItems: "flex-start",
-                backgroundColor: '#f9f7f1'
-              }} 
-              onWheel={handleWheel}
-            >
-              <img
-                src={panel.image_url}
-                alt="document preview"
-                style={{
-                  transform: `scale(${zoomLevel})`,
-                  transformOrigin: "top left",
-                  width: "100%",
-                  height: "auto",
-                  transition: "transform 0.1s ease-out",
-                }}
-              />
-            </Box>
-            <IconButton 
-              onClick={() => setNotesOpen(!notesOpen)}
-              sx={{
-                position: 'absolute',
-                bottom: 10,
-                right: 10,
-                backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                },
-                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-                color: notesOpen ? 'primary.main' : 'inherit'
+                width: '50%',
+                height: '100%',
+                borderRadius: 1,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                overflow: 'hidden',
+                backgroundColor: '#f9f7f1',
+                position: 'relative'
               }}
-              aria-label="Toggle notes"
             >
-              <NotesIcon />
-            </IconButton>
-          </Stack>
+              <Box 
+                sx={{
+                  width: "100%",
+                  height: "100%",
+                  overflow: "auto",
+                  cursor: "zoom-in",
+                  display: "flex",
+                  justifyContent: "flex-start",
+                  alignItems: "flex-start",
+                  backgroundColor: '#f9f7f1'
+                }} 
+                onWheel={handleWheel}
+              >
+                <img
+                  src={panel.image_url}
+                  alt="document preview"
+                  style={{
+                    transform: `scale(${zoomLevel})`,
+                    transformOrigin: "top left",
+                    width: "100%",
+                    height: "auto",
+                    transition: "transform 0.1s ease-out",
+                  }}
+                />
+              </Box>
+            </Stack>
+          )}
         </Stack>
 
-        <Box sx={{ textAlign: 'center', mt: 1, mb: 1 }}>
-          <Typography variant="body2" sx={{ color: '#666' }}>
+        {/* Page information area with modified spacing */}
+        <Box 
+          sx={{ 
+            textAlign: 'center', 
+            mt: 1,
+            mb: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            borderRadius: 2,
+            py: 1.5,
+            px: 3,
+            mx: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 0.5,
+            maxWidth: 'fit-content'
+          }}
+        >
+          <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 500, letterSpacing: 0.5 }}>
             Search Results: Page {currentIndex + 1} of {allPages.length}
           </Typography>
           
           {panel && (
-            <Typography variant="body2" sx={{ color: '#666', mt: 0.5 }}>
-              Volume: {panel.volume_title} | Page {panel.page_number}
-            </Typography>
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                {/* Database Collection Chip */}
+                <Chip 
+                  label={formatCollectionName(panel.volume_set)} 
+                  size="small"
+                  sx={{
+                    bgcolor: panel.volume_set === "statutes of the realm" ? '#d1a04f' : '#3f7bb6',
+                    color: 'white',
+                    fontWeight: 500,
+                    fontSize: '0.75rem',
+                    height: '20px'
+                  }}
+                />
+                
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                  {panel.volume_title} • Page {panel.page_number}
+                </Typography>
+              </Box>
+              
+              {isStatutesDocument && (
+                <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)', fontStyle: 'italic', mt: 0.5 }}>
+                  Note: PDF view is not available for Statutes of the Realm documents
+                </Typography>
+              )}
+            </>
           )}
         </Box>
 
-        <Stack 
+        {/* Redesigned navigation controls - without the Back to Overview button */}
+        <Box 
           sx={{
-            flexDirection: "row",
-            justifyContent: "center",
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             gap: 2,
-            mt: 1,
-            mb: 3,
+            mt: 0.5,
+            mb: 2,
             px: 4
           }}
         >
-          <Button
-            variant="outlined"
-            onClick={handlePrevResult}
-            disabled={currentIndex <= 0}
-            sx={sx.doubleArrowButton}
-          >
-            ←←
-          </Button>
-          
-          <Button
-            variant="outlined"
-            onClick={() => {
-              // Navigate to adjacent page in text (previous)
-              console.log(`Navigating to previous physical page from ${page_id}`);
-              
-              axios.post(`${import.meta.env.VITE_BE_URL}/api/page/adjacent`, {
-                page_id: page_id,
-                direction: "previous"
-              })
-              .then(response => {
-                if (response.data && response.data.page) {
-                  const prevPage = response.data.page;
-                  console.log(`Found previous page: ${prevPage._id}`);
-                  
-                  // Find if this page is in our results
-                  const pageIndex = allPages.findIndex(p => p._id === prevPage._id);
-                  if (pageIndex >= 0) {
-                    // If it's in our results, update the current index
-                    sessionStorage.setItem('currentPageIndex', pageIndex.toString());
+          {/* Left side - Search result navigation */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <IconButton
+              onClick={handlePrevResult}
+              disabled={currentIndex <= 0}
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#fff',
+                '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+                '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.3)' },
+                padding: 1.2
+              }}
+              size="small"
+            >
+              <KeyboardDoubleArrowLeftIcon />
+            </IconButton>
+            
+            <IconButton
+              onClick={() => {
+                // Navigate to adjacent page in text (previous)
+                console.log(`Navigating to previous physical page from ${page_id}`);
+                
+                axios.post(`${import.meta.env.VITE_BE_URL}/api/page/adjacent`, {
+                  page_id: page_id,
+                  direction: "previous"
+                })
+                .then(response => {
+                  if (response.data && response.data.page) {
+                    const prevPage = response.data.page;
+                    console.log(`Found previous page: ${prevPage._id}`);
+                    
+                    // Find if this page is in our results
+                    const pageIndex = allPages.findIndex(p => p._id === prevPage._id);
+                    if (pageIndex >= 0) {
+                      // If it's in our results, update the current index
+                      sessionStorage.setItem('currentPageIndex', pageIndex.toString());
+                    }
+                    
+                    const keywordParam = itemsString ? `?keywords=${itemsString}` : '';
+                    navigateToPage(prevPage._id, keywordParam);
+                  } else {
+                    console.log("No previous page found");
                   }
-                  
-                  const keywordParam = itemsString ? `?keywords=${itemsString}` : '';
-                  navigateToPage(prevPage._id, keywordParam);
-                } else {
-                  console.log("No previous page found");
-                }
-              })
-              .catch(error => {
-                console.error("Error finding previous page:", error);
-              });
-            }}
-            sx={sx.arrowButton}
-          >
-            ←
-          </Button>
-        
-          <Button variant="contained" onClick={add} sx={sx.button}>
-            Save
-          </Button>
+                })
+                .catch(error => {
+                  console.error("Error finding previous page:", error);
+                });
+              }}
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#fff',
+                '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+                padding: 1.2
+              }}
+              size="small"
+            >
+              <ArrowBackIosNewIcon fontSize="small" />
+            </IconButton>
+          </Box>
           
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={remove}
-            sx={sx.button}
-          >
-            Delete
-          </Button>
+          {/* Center - Main actions - removed Back to Overview button */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Button 
+              variant="contained" 
+              onClick={add} 
+              startIcon={<SaveIcon />}
+              sx={{ 
+                bgcolor: '#4caf50', 
+                color: 'white',
+                '&:hover': { bgcolor: '#43a047' },
+                px: 3,
+                borderRadius: 2,
+                textTransform: 'none',
+                fontWeight: 500,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+              }}
+            >
+              Save
+            </Button>
+            
+            {/* Only show delete button if page is in curr_pages */}
+            {curr_pages && curr_pages.includes(page_id) && (
+              <Button
+                variant="contained"
+                onClick={remove}
+                startIcon={<DeleteIcon />}
+                sx={{ 
+                  bgcolor: '#f44336', 
+                  color: 'white',
+                  '&:hover': { bgcolor: '#e53935' },
+                  px: 3,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                }}
+              >
+                Remove
+              </Button>
+            )}
+          </Box>
           
-          <Button
-            variant="outlined"
-            onClick={() => {
-              // Navigate to adjacent page in text (next)
-              console.log(`Navigating to next physical page from ${page_id}`);
-              
-              axios.post(`${import.meta.env.VITE_BE_URL}/api/page/adjacent`, {
-                page_id: page_id,
-                direction: "next"
-              })
-              .then(response => {
-                if (response.data && response.data.page) {
-                  const nextPage = response.data.page;
-                  console.log(`Found next page: ${nextPage._id}`);
-                  
-                  // Find if this page is in our results
-                  const pageIndex = allPages.findIndex(p => p._id === nextPage._id);
-                  if (pageIndex >= 0) {
-                    // If it's in our results, update the current index
-                    sessionStorage.setItem('currentPageIndex', pageIndex.toString());
+          {/* Right side - Document navigation */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <IconButton
+              onClick={() => {
+                // Navigate to adjacent page in text (next)
+                console.log(`Navigating to next physical page from ${page_id}`);
+                
+                axios.post(`${import.meta.env.VITE_BE_URL}/api/page/adjacent`, {
+                  page_id: page_id,
+                  direction: "next"
+                })
+                .then(response => {
+                  if (response.data && response.data.page) {
+                    const nextPage = response.data.page;
+                    console.log(`Found next page: ${nextPage._id}`);
+                    
+                    // Find if this page is in our results
+                    const pageIndex = allPages.findIndex(p => p._id === nextPage._id);
+                    if (pageIndex >= 0) {
+                      // If it's in our results, update the current index
+                      sessionStorage.setItem('currentPageIndex', pageIndex.toString());
+                    }
+                    
+                    const keywordParam = itemsString ? `?keywords=${itemsString}` : '';
+                    navigateToPage(nextPage._id, keywordParam);
+                  } else {
+                    console.log("No next page found");
                   }
-                  
-                  const keywordParam = itemsString ? `?keywords=${itemsString}` : '';
-                  navigateToPage(nextPage._id, keywordParam);
-                } else {
-                  console.log("No next page found");
-                }
-              })
-              .catch(error => {
-                console.error("Error finding next page:", error);
-              });
-            }}
-            sx={sx.arrowButton}
-          >
-            →
-          </Button>
-          
-          <Button
-            variant="outlined"
-            onClick={handleNextResult}
-            disabled={currentIndex >= allPages.length - 1}
-            sx={sx.doubleArrowButton}
-          >
-            →→
-          </Button>
-        </Stack>
-        
-        <Stack 
-          sx={{
-            flexDirection: "row",
-            justifyContent: "center",
-            mb: 3
-          }}
-        >
-          <Button 
-            variant="outlined" 
-            onClick={navigateToEdit}
-            sx={{ px: 4 }}
-          >
-            Back to Overview
-          </Button>
-        </Stack>
+                })
+                .catch(error => {
+                  console.error("Error finding next page:", error);
+                });
+              }}
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#fff',
+                '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+                padding: 1.2
+              }}
+              size="small"
+            >
+              <ArrowForwardIosIcon fontSize="small" />
+            </IconButton>
+            
+            <IconButton
+              onClick={handleNextResult}
+              disabled={currentIndex >= allPages.length - 1}
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                color: '#fff',
+                '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+                '&.Mui-disabled': { color: 'rgba(255, 255, 255, 0.3)' },
+                padding: 1.2
+              }}
+              size="small"
+            >
+              <KeyboardDoubleArrowRightIcon />
+            </IconButton>
+          </Box>
+        </Box>
       </Box>
+      
+      {/* Notes button fixed at bottom right of the page */}
+      <IconButton 
+        onClick={() => setNotesOpen(!notesOpen)}
+        sx={{
+          position: 'fixed',
+          bottom: 20,
+          right: 20,
+          zIndex: 1000,
+          backgroundColor: 'rgba(66, 133, 244, 0.9)',
+          color: 'white',
+          '&:hover': {
+            backgroundColor: 'rgba(66, 133, 244, 1)',
+          },
+          boxShadow: '0 3px 8px rgba(0,0,0,0.3)',
+          width: 56,
+          height: 56
+        }}
+        aria-label="Toggle notes"
+      >
+        <NotesIcon />
+      </IconButton>
       
       <Menu
         open={Boolean(selectionMenuAnchor)}
